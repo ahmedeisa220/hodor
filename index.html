@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>تسجيل حضور جروب A الدفعة 59</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <h1>تسجيل حضور جروب A الدفعة 59</h1>
+    <p class="sub">اكتب اسمك ورقم جلوسك واختر يوم الحضور. الأماكن محدودة لكل رغبة.</p>
+  </header>
+
+  <main class="grid">
+    <section class="card">
+      <h2 class="card-title">بيانات الطالب</h2>
+      <form id="pref-form" class="form">
+        <label for="name">الاسم الكامل (باللغة العربية)</label>
+        <input id="name" name="name" type="text" required placeholder="" autocomplete="off" />
+
+        <label for="seat">رقم الجلوس (باللغة الانجليزية)</label>
+        <input id="seat" name="seat" type="text" inputmode="numeric" required placeholder="مثال: 1234" autocomplete="off" />
+
+        <label for="choice">الرغبة</label>
+        <select id="choice" name="choice" required>
+          <option value="" disabled selected>اختر رغبتك</option>
+        </select>
+
+        <button type="submit" id="submitBtn" class="btn-primary">تسجيل</button>
+      </form>
+
+      <div id="status" class="status" aria-live="polite"></div>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">إحصائيات مباشرة</h2>
+      <div id="stats" class="stats">
+        <!-- تُملأ ديناميكياً -->
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">لوحة الليدرز</h2>
+      <button id="adminOpen" class="btn-ghost">تسجيل الحضور (للأدمن)</button>
+      <p class="muted">خاص بالمسؤولين فقط.</p>
+    </section>
+  </main>
+
+  <!-- نافذة الأدمن -->
+  <dialog id="adminDialog" class="dialog">
+    <form method="dialog" class="dialog-card" id="adminLoginForm">
+      <h3>تسجيل دخول الأدمن</h3>
+      <label>اسم المستخدم</label>
+      <input id="adminUser" autocomplete="username" required />
+      <label>كلمة السر</label>
+      <input id="adminPass" type="password" autocomplete="current-password" required />
+      <menu class="dialog-actions">
+        <button value="cancel" class="btn-ghost">إلغاء</button>
+        <button id="adminLoginBtn" class="btn-primary" value="login">دخول</button>
+      </menu>
+      <div id="adminLoginMsg" class="status"></div>
+    </form>
+
+    <form method="dialog" class="dialog-card" id="adminPanel" hidden>
+      <h3>تسجيل الحضور</h3>
+
+      <div class="toolbar">
+        <input id="searchInput" placeholder="ابحث بالاسم أو رقم الجلوس" />
+        <input id="attDate" type="date" />
+        <button id="refreshSubs" class="btn-ghost" type="button">تحديث القائمة</button>
+      </div>
+
+      <div id="subsTable" class="table"></div>
+
+      <menu class="dialog-actions">
+        <button value="close" class="btn-ghost">إغلاق</button>
+        <button id="saveAttendance" class="btn-primary" type="button">تسجيل الحضور</button>
+      </menu>
+      <div id="adminMsg" class="status"></div>
+    </form>
+  </dialog>
+
+  <footer class="site-footer">
+    <a href="https://t.me/Dr_Ahmed_Eisa" target="_blank" rel="noopener noreferrer">
+      Developer: Dr_Ahmed_Eisa
+    </a>
+  </footer>
+
+  <script>
+    window.APP_CONFIG = {
+      ENDPOINT: "https://script.google.com/macros/s/AKfycbwgjuan_Yyggqd5ZbWYLjPHQkhDpTlBkQmZ5bhKKTggGoeVOZn0u82y45JQr4GSVvmx/exec" // مثال: https://script.google.com/macros/s/AKfycbx.../exec
+    };
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>

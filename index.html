@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>تسجيل حضور الطلاب لمحاضرات موديول الأطفال</title>
   <link rel="stylesheet" href="styles.css" />
+  <!-- ربط خط Cairo الاحترافي من جوجل -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
   <header class="site-header">
@@ -25,9 +29,10 @@
         <label for="choice">الرغبة</label>
         <select id="choice" name="choice" required>
           <option value="" disabled selected>اختر رغبتك</option>
+          <!-- يتم إضافة الخيارات هنا بواسطة JavaScript -->
         </select>
 
-        <button type="submit" id="submitBtn" class="btn-primary">تسجيل</button>
+        <button type="submit" id="submitBtn" class="btn-primary">تسجيل الرغبة</button>
       </form>
 
       <div id="status" class="status" aria-live="polite"></div>
@@ -50,7 +55,7 @@
   <!-- نافذة الأدمن -->
   <dialog id="adminDialog" class="dialog">
     <form method="dialog" class="dialog-card" id="adminLoginForm">
-      <h3>تسجيل دخول الأدمن</h3>
+      <h3>تسجيل دخول المشرف</h3>
       <label>اسم المستخدم</label>
       <input id="adminUser" autocomplete="username" required />
       <label>كلمة السر</label>
@@ -88,9 +93,26 @@
   </footer>
 
   <script>
+    // تم تغيير اسم المتغير ENDPOINT إلى API_ENDPOINT لتوضيح الغرض
     window.APP_CONFIG = {
-      ENDPOINT: "https://script.google.com/macros/s/AKfycbwgjuan_Yyggqd5ZbWYLjPHQkhDpTlBkQmZ5bhKKTggGoeVOZn0u82y45JQr4GSVvmx/exec" // مثال: https://script.google.com/macros/s/AKfycbx.../exec
+      API_ENDPOINT: "https://script.google.com/macros/s/AKfycbwgjuan_Yyggqd5ZbWYLjPHQkhDpTlBkQmZ5bhKKTggGoeVOZn0u82y45JQr4GSVvmx/exec" // يجب تحديث هذا الرابط
     };
+
+    // وظيفة وهمية لملء قائمة الخيارات للاختبار
+    document.addEventListener('DOMContentLoaded', () => {
+        const choiceSelect = document.getElementById('choice');
+        const dummyChoices = [
+            { label: 'الأحد: المجموعة الأولى (قاعة 1)', value: 'Sun_Group1' },
+            { label: 'الاثنين: المجموعة الثانية (قاعة 2)', value: 'Mon_Group2' },
+            { label: 'الثلاثاء: المجموعة الثالثة (أونلاين)', value: 'Tue_Group3' },
+        ];
+        dummyChoices.forEach(choice => {
+            const option = document.createElement('option');
+            option.value = choice.value;
+            option.textContent = choice.label;
+            choiceSelect.appendChild(option);
+        });
+    });
   </script>
   <script src="script.js"></script>
 </body>

@@ -1,137 +1,205 @@
 :root{
-  --bg:#f7fafc;
+  --bg:#f8f9fb; /* خلفية أفتح قليلاً */
   --card:#ffffff;
-  --text:#0f172a;
-  --muted:#64748b;
-  --primary:#0ea5e9;      /* سماوي */
-  --primary-ink:#03212c;
-  --ok:#16a34a;
-  --warn:#f59e0b;
-  --err:#ef4444;
+  --text:#1c2025; /* لون نص أغمق قليلاً للتباين */
+  --muted:#6e7987;
+  --primary:#0d94f8; /* أزرق أساسي أكثر حيوية */
+  --primary-hover:#0b7ecf; /* لون عند التحويم */
+  --primary-ink:#fff; /* لون نص الزر الأساسي */
+  --ok:#10b981; /* أخضر */
+  --warn:#f59e0b; /* أصفر */
+  --err:#ef4444; /* أحمر */
   --ring:#bae6fd;
 }
 
+/* استخدام خط Cairo لجميع العناصر */
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
   margin:0;
   background:var(--bg);
   color:var(--text);
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Tahoma,Arial,sans-serif;
+  font-family:'Cairo', sans-serif; /* الخط الاحترافي الجديد */
+  font-weight:400;
 }
 
 .site-header{
   text-align:center;
-  padding:24px 12px 8px;
+  padding:32px 16px 12px;
 }
-.sub{color:var(--muted);margin:6px 0 0}
+.site-header h1{
+    font-weight:900; /* وزن ثقيل للعنوان الرئيسي */
+    font-size:36px;
+    margin-bottom:4px;
+    color:var(--primary);
+}
+.sub{color:var(--muted);margin:6px 0 0; font-size:17px}
 
 .grid{
-  max-width:980px;
+  max-width:1080px; /* زيادة عرض الشبكة قليلاً */
   margin:0 auto;
-  padding:16px;
+  padding:24px;
   display:grid;
-  gap:16px;
-  grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
+  gap:24px;
+  grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); /* زيادة حجم البطاقات الأدنى */
 }
 .card{
   background:var(--card);
   border:1px solid #e5e7eb;
-  border-radius:16px;
-  padding:16px;
-  box-shadow:0 6px 20px rgba(2,8,23,.06);
+  border-radius:20px; /* زوايا أكثر استدارة */
+  padding:24px;
+  /* ظل احترافي وبارز أكثر */
+  box-shadow:0 10px 30px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.05);
+  transition:transform 0.3s ease; /* تأثير حركي خفيف */
 }
-.card-title{margin:0 0 10px;font-size:20px}
+.card:hover {
+    transform: translateY(-2px); /* رفع البطاقة قليلاً عند التحويم */
+}
+.card-title{
+    margin:0 0 16px;
+    font-size:24px;
+    font-weight:700;
+    color:var(--text);
+    border-bottom:2px solid #f0f3f5; /* خط خفيف تحت العنوان */
+    padding-bottom:8px;
+}
 
-.form{display:grid;gap:10px}
-label{font-weight:600}
-input,select,button{
+.form{display:grid;gap:16px}
+label{font-weight:700; font-size:15px}
+input,select{
   width:100%;
-  padding:12px 14px;
-  border-radius:12px;
-  border:1px solid #e5e7eb;
-  background:#fff;
+  padding:14px 18px;
+  border-radius:14px;
+  border:1px solid #dcdfe3; /* حدود أغمق قليلاً للمظهر الأنيق */
+  background:#f9f9fa; /* خلفية خفيفة للحقول */
   color:var(--text);
   font-size:16px;
+  transition:border-color 0.2s ease, box-shadow 0.2s ease;
 }
-select option[disabled]{color:#888}
+input:focus, select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(13, 148, 248, 0.2); /* تأثير حلقة التركيز */
+    background:var(--card);
+    outline:none;
+}
+
+/* الأزرار - تحسين المظهر والتفاعل */
+button{
+    font-family:'Cairo', sans-serif;
+    font-weight:700;
+    font-size:16px;
+    padding:14px 18px !important;
+    border-radius:14px !important;
+}
 
 .btn-primary{
   cursor:pointer;
   background:var(--primary);
-  color:#fff;
-  font-weight:700;
+  color:var(--primary-ink);
   border:none;
-  transition:transform .08s ease, filter .08s ease, box-shadow .1s;
-  box-shadow:0 4px 12px rgba(14,165,233,.35);
+  transition:all .2s ease;
+  box-shadow:0 8px 20px rgba(13, 148, 248, 0.4); /* ظل أقوى للزر الأساسي */
 }
-.btn-primary:active{ transform:scale(.99) }
-.btn-primary[disabled]{ filter:grayscale(.7); opacity:.7; cursor:not-allowed }
+.btn-primary:hover:not([disabled]){
+    background:var(--primary-hover);
+    box-shadow:0 10px 25px rgba(13, 148, 248, 0.5);
+    transform: translateY(-1px); /* رفع خفيف عند التحويم */
+}
+.btn-primary:active{ transform:scale(.98); transition:transform .08s ease }
+.btn-primary[disabled]{ filter:brightness(.9); opacity:.65; cursor:not-allowed; box-shadow:none; }
 
 .btn-ghost{
-  border:1px solid #e5e7eb;
+  border:1px solid #c8d1da;
   background:#fff;
+  color:var(--text);
   cursor:pointer;
-  border-radius:12px;
-  padding:10px 14px;
+  transition:all .2s ease;
+}
+.btn-ghost:hover{
+    background:#f0f3f5;
+    border-color:#aab7c4;
 }
 
-.status{min-height:20px;margin-top:10px;font-weight:600}
-.status.ok{color:var(--ok)}
-.status.warn{color:var(--warn)}
-.status.err{color:var(--err)}
+.status{min-height:20px;margin-top:16px;font-weight:700; padding:8px 12px; border-radius:10px;}
+.status.ok{color:var(--ok); background:#e6fff3}
+.status.warn{color:var(--warn); background:#fffbeb}
+.status.err{color:var(--err); background:#ffebeb}
 
 .stats{
   display:grid;
-  gap:12px;
-  grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+  gap:16px;
+  grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); /* تعديل لعرض أكثر مرونة */
 }
 .stat{
   border:1px solid #e5e7eb;
-  padding:14px;
-  border-radius:14px;
-  background:#fff;
+  padding:18px;
+  border-radius:16px;
+  background:#f9fbfc; /* خلفية خفيفة لبطاقة الإحصاء */
+  box-shadow:0 4px 10px rgba(0,0,0,0.05);
 }
-.stat .label{color:var(--muted);font-size:14px}
-.stat .value{font-size:26px;font-weight:800}
+.stat .label{color:var(--muted);font-size:15px; margin-bottom:4px}
+.stat .value{font-size:32px;font-weight:900; color:var(--primary)}
 
 .site-footer{
-  margin:24px auto 32px;
+  margin:40px auto 32px;
   text-align:center;
   color:var(--muted);
+  font-size:14px;
 }
-.site-footer a{color:var(--primary);text-decoration:none}
+.site-footer a{color:var(--primary);text-decoration:none; font-weight:700}
 .site-footer a:hover{text-decoration:underline}
 
-.dialog::backdrop{background:rgba(2,8,23,.25)}
+/* تحسينات النافذة المنبثقة (Dialog) */
+.dialog::backdrop{background:rgba(2,8,23,.5); backdrop-filter:blur(3px);}
 .dialog-card{
-  width:min(960px,96vw);
+  width:min(500px,96vw); /* جعل نافذة الدخول أصغر وأكثر تركيزاً */
   background:#fff;
-  border-radius:16px;
-  border:1px solid #e5e7eb;
-  padding:16px;
-  box-shadow:0 12px 32px rgba(2,8,23,.2);
+  border-radius:20px;
+  border:none;
+  padding:30px;
+  box-shadow:0 25px 50px rgba(0,0,0,.25), 0 10px 20px rgba(0,0,0,.15);
 }
+.dialog-card h3{
+    font-size:28px;
+    font-weight:900;
+    margin-top:0;
+    margin-bottom:20px;
+}
+
 .dialog-actions{
-  display:flex; gap:10px; justify-content:flex-end; margin-top:12px;
+  display:flex; gap:12px; justify-content:flex-end; margin-top:24px;
 }
-.toolbar{display:flex; gap:8px; flex-wrap:wrap; margin:8px 0}
+.toolbar{
+    display:flex; gap:10px; flex-wrap:wrap; margin:16px 0;
+    padding:10px; border-radius:12px; background:#f4f7f9;
+}
 .table{
-  border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; max-height:60vh; overflow:auto;
+  border:1px solid #e5e7eb; border-radius:14px; overflow:hidden; max-height:60vh; overflow:auto;
 }
-.row{display:grid; grid-template-columns: 52px 1fr 1fr 1fr; gap:0; border-bottom:1px solid #eef2f7}
-.cell{padding:10px 12px}
-.row.head{position:sticky; top:0; background:#f3faff; font-weight:700}
+.row{display:grid; grid-template-columns: 52px 1.5fr 1fr 1fr; gap:0; border-bottom:1px solid #eef2f7}
+.cell{padding:12px 14px; font-size:15px}
+.row.head{position:sticky; top:0; background:var(--primary); color:white; font-weight:700; z-index:10;}
 .muted{color:var(--muted)}
 
-/* Toasts */
-.toast{
-  position:fixed; inset-inline-start:50%; bottom:24px; transform:translateX(-50%);
-  background:#fff; color:var(--text);
-  border:1px solid #e5e7eb; border-radius:14px; padding:12px 16px;
-  box-shadow:0 12px 30px rgba(2,8,23,.18); display:flex; gap:8px; align-items:center;
-  z-index:9999; min-width:260px;
+/* تحسينات إضافية على التنسيقات */
+.table .cell:nth-child(2) { /* تنسيق خاص لعمود الاسم */
+    font-weight: 600;
 }
-.toast.ok{border-color:#c7f0cf}
-.toast.err{border-color:#ffd0d0}
-.toast .icon{font-size:20px}
+
+@media (max-width: 600px) {
+    .site-header h1 {
+        font-size: 28px;
+    }
+    .grid {
+        padding: 16px;
+    }
+    .card {
+        padding: 20px;
+    }
+    .row {
+        grid-template-columns: 52px 1fr 1fr; /* إخفاء عمود في شاشات الجوال */
+    }
+    .row.head .cell:last-child, .row:not(.head) .cell:last-child {
+        display: none;
+    }
+}

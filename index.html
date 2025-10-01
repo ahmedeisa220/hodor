@@ -5,10 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>تسجيل حضور الطلاب لمحاضرات موديول الأطفال</title>
   <link rel="stylesheet" href="styles.css" />
-  <!-- ربط خط Cairo الاحترافي من جوجل -->
+
+  <!-- خط Cairo لتحسين المظهر فقط (لا يؤثر على المنطق) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    /* اختياري: تأكيد استخدام الخط إن ماكنش مضاف في styles.css */
+    :root { --app-font: "Cairo", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    html, body { font-family: var(--app-font); }
+  </style>
 </head>
 <body>
   <header class="site-header">
@@ -23,13 +29,13 @@
         <label for="name">الاسم رباعي (باللغة العربية)</label>
         <input id="name" name="name" type="text" required placeholder="" autocomplete="off" />
 
-        <label for="seat">رقم الجلوس (باللغة الانجليزية)</label>
+        <label for="seat">رقم الجلوس (باللغة الإنجليزية)</label>
         <input id="seat" name="seat" type="text" inputmode="numeric" required placeholder="مثال: 1234" autocomplete="off" />
 
         <label for="choice">الرغبة</label>
         <select id="choice" name="choice" required>
           <option value="" disabled selected>اختر رغبتك</option>
-          <!-- يتم إضافة الخيارات هنا بواسطة JavaScript -->
+          <!-- ستُملأ الخيارات من خلال script.js عبر الـ API -->
         </select>
 
         <button type="submit" id="submitBtn" class="btn-primary">تسجيل الرغبة</button>
@@ -41,7 +47,7 @@
     <section class="card">
       <h2 class="card-title">إحصائيات مباشرة</h2>
       <div id="stats" class="stats">
-        <!-- تُملأ ديناميكياً -->
+        <!-- تُملأ ديناميكياً بواسطة script.js -->
       </div>
     </section>
 
@@ -93,26 +99,10 @@
   </footer>
 
   <script>
-    // تم تغيير اسم المتغير ENDPOINT إلى API_ENDPOINT لتوضيح الغرض
+    /* مهم: لا تغيّر اسم المفتاح ENDPOINT لأن script.js بيتوقعه كده */
     window.APP_CONFIG = {
-      API_ENDPOINT: "https://script.google.com/macros/s/AKfycbwgjuan_Yyggqd5ZbWYLjPHQkhDpTlBkQmZ5bhKKTggGoeVOZn0u82y45JQr4GSVvmx/exec" // يجب تحديث هذا الرابط
+      ENDPOINT: "https://script.google.com/macros/s/AKfycbwgjuan_Yyggqd5ZbWYLjPHQkhDpTlBkQmZ5bhKKTggGoeVOZn0u82y45JQr4GSVvmx/exec"
     };
-
-    // وظيفة وهمية لملء قائمة الخيارات للاختبار
-    document.addEventListener('DOMContentLoaded', () => {
-        const choiceSelect = document.getElementById('choice');
-        const dummyChoices = [
-            { label: 'الأحد: المجموعة الأولى (قاعة 1)', value: 'Sun_Group1' },
-            { label: 'الاثنين: المجموعة الثانية (قاعة 2)', value: 'Mon_Group2' },
-            { label: 'الثلاثاء: المجموعة الثالثة (أونلاين)', value: 'Tue_Group3' },
-        ];
-        dummyChoices.forEach(choice => {
-            const option = document.createElement('option');
-            option.value = choice.value;
-            option.textContent = choice.label;
-            choiceSelect.appendChild(option);
-        });
-    });
   </script>
   <script src="script.js"></script>
 </body>

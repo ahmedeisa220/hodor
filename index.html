@@ -1,97 +1,109 @@
 <!DOCTYPE html>
-
 <html dir="rtl" lang="ar">
-<head><meta content="ba822f5788215c7bac3a53b73891f14e" name="monetag"/>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<title>تسجيل حضور محاضرات موديول الأطفال</title>
-<link href="styles.css" rel="stylesheet"/>
-<!-- خط Cairo لتحسين المظهر فقط (لا يؤثر على المنطق) -->
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&amp;display=swap" rel="stylesheet"/>
-<style>
-    /* اختياري: تأكيد استخدام الخط إن ماكنش مضاف في styles.css */
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>تسجيل حضور محاضرات موديول الأطفال</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <style>
     :root { --app-font: "Cairo", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
     html, body { font-family: var(--app-font); }
   </style>
-<script>(function(s){s.dataset.zone='10097115',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-<?php include_once (dirname(__FILE__) . '/pa_antiadblock_9959522.php'); ?>
 </head>
 <body>
 <header class="site-header">
-<h1>تسجيل حضور محاضرات الأطفال الدفعة 59</h1>
-<p class="sub">اكتب اسمك ورقم جلوسك واختر يوم الحضور. الأماكن محدودة لكل رغبة.</p>
+  <h1>تسجيل حضور محاضرات الأطفال الدفعة 59</h1>
+  <p class="sub">اكتب اسمك ورقم جلوسك واختر يوم الحضور. الأماكن محدودة لكل رغبة.</p>
 </header>
+
 <main class="grid">
-<section class="card">
-<h2 class="card-title">بيانات الطالب</h2>
-<form class="form" id="pref-form">
-<label for="name">الاسم رباعي (باللغة العربية)</label>
-<input autocomplete="off" id="name" name="name" placeholder="" required="" type="text"/>
-<label for="seat">رقم الجلوس (باللغة الإنجليزية)</label>
-<input autocomplete="off" id="seat" inputmode="numeric" name="seat" placeholder="مثال: 1234" required="" type="text"/>
-<label for="choice">الرغبة</label>
-<select id="choice" name="choice" required="">
-<option disabled="" selected="" value="">اختر رغبتك</option>
-<!-- ستُملأ الخيارات من خلال script.js عبر الـ API -->
-</select>
-<button class="btn-primary" id="submitBtn" type="submit">تسجيل الرغبة</button>
-</form>
-<div aria-live="polite" class="status" id="status"></div>
-</section>
-<section class="card">
-<h2 class="card-title">إحصائيات مباشرة</h2>
-<div class="stats" id="stats">
-<!-- تُملأ ديناميكياً بواسطة script.js -->
-</div>
-</section>
-<section class="card">
-<h2 class="card-title">لوحة المشرفين</h2>
-<button class="btn-ghost" id="adminOpen">تسجيل الحضور (للأدمن)</button>
-<p class="muted">خاص بالمسؤولين فقط.</p>
-</section>
+  <section class="card">
+    <h2 class="card-title">بيانات الطالب</h2>
+    <form class="form" id="pref-form">
+      <label for="name">الاسم رباعي (باللغة العربية)</label>
+      <input id="name" name="name" type="text" required autocomplete="off"/>
+
+      <label for="seat">رقم الجلوس (باللغة الإنجليزية)</label>
+      <input id="seat" name="seat" type="text" required inputmode="numeric" placeholder="مثال: 1234"/>
+
+      <label for="choice">الرغبة</label>
+      <select id="choice" name="choice" required>
+        <option value="" selected disabled>اختر رغبتك</option>
+      </select>
+
+      <button class="btn-primary" id="submitBtn" type="submit">تسجيل الرغبة</button>
+      <button class="btn-ghost" id="checkOpen" type="button">🧩 اختبار التسجيل</button>
+    </form>
+    <div id="status" class="status" aria-live="polite"></div>
+  </section>
+
+  <section class="card">
+    <h2 class="card-title">إحصائيات مباشرة</h2>
+    <div id="stats" class="stats"></div>
+  </section>
+
+  <section class="card">
+    <h2 class="card-title">لوحة المشرفين</h2>
+    <button class="btn-ghost" id="adminOpen">تسجيل الحضور (للأدمن)</button>
+    <p class="muted">خاص بالمسؤولين فقط.</p>
+  </section>
 </main>
+
+<!-- نافذة اختبار التسجيل -->
+<dialog class="dialog" id="checkDialog">
+  <form class="dialog-card" id="checkForm" method="dialog">
+    <h3>اختبار التسجيل</h3>
+    <label>رقم الجلوس</label>
+    <input id="checkSeat" required inputmode="numeric" placeholder="مثال: 1234"/>
+    <menu class="dialog-actions">
+      <button class="btn-ghost" value="cancel">إغلاق</button>
+      <button class="btn-primary" id="checkBtn" value="check">عرض البيانات</button>
+    </menu>
+    <div id="checkResult" class="status"></div>
+  </form>
+</dialog>
+
 <!-- نافذة الأدمن -->
 <dialog class="dialog" id="adminDialog">
-<form class="dialog-card" id="adminLoginForm" method="dialog">
-<h3>تسجيل دخول المشرف</h3>
-<label>اسم المستخدم</label>
-<input autocomplete="username" id="adminUser" required=""/>
-<label>كلمة السر</label>
-<input autocomplete="current-password" id="adminPass" required="" type="password"/>
-<menu class="dialog-actions">
-<button class="btn-ghost" value="cancel">إلغاء</button>
-<button class="btn-primary" id="adminLoginBtn" value="login">دخول</button>
-</menu>
-<div class="status" id="adminLoginMsg"></div>
-</form>
-<form class="dialog-card" hidden="" id="adminPanel" method="dialog">
-<h3>تسجيل الحضور</h3>
-<div class="toolbar">
-<input id="searchInput" placeholder="ابحث بالاسم أو رقم الجلوس"/>
-<input id="attDate" type="date"/>
-<button class="btn-ghost" id="refreshSubs" type="button">تحديث القائمة</button>
-</div>
-<div class="table" id="subsTable"></div>
-<menu class="dialog-actions">
-<button class="btn-ghost" value="close">إغلاق</button>
-<button class="btn-primary" id="saveAttendance" type="button">تسجيل الحضور</button>
-</menu>
-<div class="status" id="adminMsg"></div>
-</form>
+  <form class="dialog-card" id="adminLoginForm" method="dialog">
+    <h3>تسجيل دخول المشرف</h3>
+    <label>اسم المستخدم</label>
+    <input id="adminUser" autocomplete="username" required/>
+    <label>كلمة السر</label>
+    <input id="adminPass" type="password" autocomplete="current-password" required/>
+    <menu class="dialog-actions">
+      <button class="btn-ghost" value="cancel">إلغاء</button>
+      <button class="btn-primary" id="adminLoginBtn" value="login">دخول</button>
+    </menu>
+    <div id="adminLoginMsg" class="status"></div>
+  </form>
+
+  <form class="dialog-card" id="adminPanel" hidden method="dialog">
+    <h3>تسجيل الحضور</h3>
+    <div class="toolbar">
+      <input id="searchInput" placeholder="ابحث بالاسم أو رقم الجلوس"/>
+      <input id="attDate" type="date"/>
+      <button class="btn-ghost" id="refreshSubs" type="button">تحديث القائمة</button>
+    </div>
+    <div id="subsTable" class="table"></div>
+    <menu class="dialog-actions">
+      <button class="btn-ghost" value="close">إغلاق</button>
+      <button class="btn-primary" id="saveAttendance" type="button">تسجيل الحضور</button>
+    </menu>
+    <div id="adminMsg" class="status"></div>
+  </form>
 </dialog>
+
 <footer class="site-footer">
-<a href="https://t.me/Dr_Ahmed_Eisa" rel="noopener noreferrer" target="_blank">
-      Developer: Dr_Ahmed_Eisa
-    </a>
+  <a href="https://t.me/Dr_Ahmed_Eisa" target="_blank" rel="noopener noreferrer">Developer: Dr_Ahmed_Eisa</a>
 </footer>
+
 <script>
-    /* مهم: لا تغيّر اسم المفتاح ENDPOINT لأن script.js بيتوقعه كده */
-    window.APP_CONFIG = {
-      ENDPOINT: "https://script.google.com/macros/s/AKfycbwgjuan_Yyggqd5ZbWYLjPHQkhDpTlBkQmZ5bhKKTggGoeVOZn0u82y45JQr4GSVvmx/exec"
-    };
-  </script>
+  window.APP_CONFIG = {
+    ENDPOINT: "https://script.google.com/macros/s/AKfycbyKTDWKVkMZUxQwKCJRIQx-Bin__47mWQ0WYP4XPDCH5-_eFlZZevg7ytd_zrytzBMn/exec"
+  };
+</script>
 <script src="script.js"></script>
 </body>
 </html>

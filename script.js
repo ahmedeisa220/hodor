@@ -1,29 +1,36 @@
 /**
- * Frontend logic for serverless capacity signup + admin.
+ * Frontend logic for serverless capacity signup + admin + check registration.
  */
 
 const $  = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
-const form        = $("#pref-form");
-const choiceSelect= $("#choice");
-const statusEl    = $("#status");
-const submitBtn   = $("#submitBtn");
-const statsEl     = $("#stats");
-const ENDPOINT    = (window.APP_CONFIG && window.APP_CONFIG.ENDPOINT) || "";
+const form         = $("#pref-form");
+const choiceSelect = $("#choice");
+const statusEl     = $("#status");
+const submitBtn    = $("#submitBtn");
+const statsEl      = $("#stats");
+const ENDPOINT     = (window.APP_CONFIG && window.APP_CONFIG.ENDPOINT) || "";
 
-const adminOpen   = $("#adminOpen");
-const dlg         = $("#adminDialog");
+const adminOpen      = $("#adminOpen");
+const dlg            = $("#adminDialog");
 const adminLoginForm = $("#adminLoginForm");
-const adminPanel  = $("#adminPanel");
-const adminLoginBtn = $("#adminLoginBtn");
-const adminLoginMsg = $("#adminLoginMsg");
-const adminMsg    = $("#adminMsg");
-const searchInput = $("#searchInput");
-const attDate     = $("#attDate");
-const refreshSubs = $("#refreshSubs");
-const subsTable   = $("#subsTable");
+const adminPanel     = $("#adminPanel");
+const adminLoginBtn  = $("#adminLoginBtn");
+const adminLoginMsg  = $("#adminLoginMsg");
+const adminMsg       = $("#adminMsg");
+const searchInput    = $("#searchInput");
+const attDate        = $("#attDate");
+const refreshSubs    = $("#refreshSubs");
+const subsTable      = $("#subsTable");
 const saveAttendance = $("#saveAttendance");
+
+// NEW: check registration elements
+const checkOpen   = $("#checkOpen");
+const checkDialog = $("#checkDialog");
+const checkBtn    = $("#checkBtn");
+const checkSeat   = $("#checkSeat");
+const checkResult = $("#checkResult");
 
 let adminCreds = null;
 let allSubs = [];
@@ -148,7 +155,7 @@ form.addEventListener("submit", async (e)=>{
 // Admin dialog
 adminOpen.addEventListener("click", ()=> { dlg.showModal(); });
 
-// ✅ Login عبر GET (مع ts لمنع الكاش)
+// Login عبر GET (مع ts لمنع الكاش)
 adminLoginBtn.addEventListener("click", async (ev)=>{
   ev.preventDefault();
   const user = $("#adminUser").value.trim();
@@ -291,5 +298,64 @@ saveAttendance.addEventListener("click", async ()=>{
 // typing constraints
 $("#seat").addEventListener("input", (e)=>{ e.target.value = e.target.value.replace(/[^0-9]/g,""); });
 $("#name").addEventListener("input", (e)=>{ e.target.value = e.target.value.replace(/[^\u0600-\u06FF\s]/g,""); });
+
+// === NEW: اختبار التسجيل ===
+if (checkOpen && checkDialog && checkBtn) {
+  checkOpen.addEventListener("click", () => {
+    checkDialog.showModal();
+    checkResult.textContent = "";
+    checkResult.className = "status";
+    checkSeat.value = "";
+    setTimeout(()=> checkSeat.focus(), 50);
+  });
+
+  checkBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    const seat = (checkSeat.value || "").trim();
+    if (!seat) {
+      checkResult.textContent = "اكتب رقم الجلوس.";
+      checkResult.className = "status warn";
+      return;
+    }
+    if (!seatRE.test(seat)) {
+      checkResult.textContent = "رقم الجلوس يجب أن يكون أرقام إنجليزية فقط.";
+      checkResult.className = "status warn";
+      return;
+    }
+    checkResult.textContent = "جارِ البحث...";
+    checkResult.className = "status";
+    try{
+      const res = await fetch(ENDPOINT + "?action=check&seat=" + encodeURIComponent(seat) + "&ts=" + Date.now());
+      const data = await res.json();
+      if (!data.ok) {
+        if (data.reason === "not found") {
+          checkResult.textContent = "❌ لم يتم العثور على هذا الرقم.";
+          checkResult.className = "status err";
+        } else {
+          checkResult.textContent = "⚠️ حدث خطأ: " + (data.reason || "غير معروف");
+          checkResult.className = "status err";
+        }
+        return;
+      }
+      const reg = data.reg;
+      const days = data.days || [];
+      let html = `<p>👤 <b>${reg.name}</b> — رقم الجلوس: <b>${reg.seat}</b></p>
+                  <p>🎯 الرغبة المسجلة: <b>${reg.choice}</b></p>`;
+      if (days.length > 0) {
+        html += "<p>📅 الحضور المسجل:</p><ul>" +
+          days.map(d => `<li>${d.date} — ${d.choice}</li>`).join("") +
+          "</ul>";
+      } else {
+        html += "<p>🚫 لم يتم تسجيل أي حضور بعد.</p>";
+      }
+      checkResult.innerHTML = html;
+      checkResult.className = "status ok";
+    }catch(err){
+      console.error(err);
+      checkResult.textContent = "تعذر الاتصال بالخادم.";
+      checkResult.className = "status err";
+    }
+  });
+}
 
 loadCapacities();

@@ -203,3 +203,26 @@ button{
         display: none;
     }
 }
+
+/* تحسين القراءة على الجوال: تكبير طفيف للنصوص والعناصر التفاعلية */
+@media (max-width: 600px) {
+  html, body { font-size: 17px; line-height: 1.55; }
+  input, select, button { font-size: 17px; }
+  .dialog-card { width: min(560px, 98vw); padding: 22px; }
+  .toolbar { gap: 8px; }
+  #filterChoice { min-width: 160px; }
+}
+
+/* جعل القوائم والعناصر أكثر قابلية للمس */
+select, button, input {
+  min-height: 44px;
+}
+
+/* تنسيق خاص لفلتر الرغبات في شريط الأدمن */
+#filterChoice {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #dcdfe3;
+  background: #fff;
+}
+

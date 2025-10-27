@@ -83,7 +83,10 @@
     <h3>تسجيل الحضور</h3>
     <div class="toolbar">
       <input id="searchInput" placeholder="ابحث بالاسم أو رقم الجلوس"/>
-      <input id="attDate" type="date"/>
+      <select id="filterChoice" aria-label="فلترة حسب الرغبة">
+        <option value="" selected>كل الرغبات</option>
+      </select>
+      <input id="attDate" type="hidden"/>
       <button class="btn-ghost" id="refreshSubs" type="button">تحديث القائمة</button>
     </div>
     <div id="subsTable" class="table"></div>
@@ -105,5 +108,60 @@
   };
 </script>
 <script src="script.js"></script>
+
+<script>
+// ضبط تاريخ/وقت الحضور تلقائيًا وإضافة فلتر الرغبات
+(function(){
+  const adminOpenBtn = document.getElementById('adminOpen');
+  const adminDialog = document.getElementById('adminDialog');
+  const attDate = document.getElementById('attDate');
+  const filterChoice = document.getElementById('filterChoice');
+
+  function setNow(){
+    try{
+      const now = new Date();
+      // ISO بدون الميلي ثانية لاستخدام موحد
+      const iso = now.toISOString();
+      if(attDate) attDate.value = iso;
+    }catch(e){}
+  }
+
+  function populatePrefFilter(){
+    const src = document.getElementById('choice');
+    if(!src || !filterChoice) return;
+    const seen = new Set();
+    Array.from(src.querySelectorAll('option')).forEach(opt => {
+      const val = (opt.value||'').trim();
+      const text = (opt.textContent||'').trim();
+      if(!val || opt.disabled) return;
+      if(seen.has(val)) return;
+      seen.add(val);
+      const o = document.createElement('option');
+      o.value = val;
+      o.textContent = text || val;
+      filterChoice.appendChild(o);
+    });
+  }
+
+  function init(){
+    setNow();
+    populatePrefFilter();
+  }
+
+  // عند فتح نافذة الأدمن أو تحميل الصفحة
+  if (adminOpenBtn) adminOpenBtn.addEventListener('click', init);
+  window.addEventListener('DOMContentLoaded', init);
+
+  // بث حدث مخصص عند تغيير فلتر الرغبات ليستمع له السكربت الخارجي إن وُجد
+  if (filterChoice) {
+    filterChoice.addEventListener('change', () => {
+      const ev = new CustomEvent('pref-filter-change', { detail: { value: filterChoice.value }});
+      window.dispatchEvent(ev);
+    });
+  }
+
+})();
+</script>
+
 </body>
 </html>

@@ -226,46 +226,17 @@ select, button, input {
   background: #fff;
 }
 
-/* ===== Mobile fixes: make in-header "الرغبة" filter visible on small screens ===== */
-@media (max-width: 600px) {
-  /* allow header to grow and not clip children */
-  .row.head,
-  .row.head .cell {
-    overflow: visible !important;
-  }
-  /* stack the label and the select neatly */
-  .row.head .cell .pref-filter-inhead {
-    display: block;
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    font-size: 16px;
-    padding: 10px 12px;
-    border-radius: 10px;
-  }
-  .row.head .cell > div { /* the wrapper we create around label+select */
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  /* shrink header font and padding slightly to fit */
-  .row.head .cell {
-    padding: 10px 8px !important;
-    white-space: normal !important; /* allow wrapping instead of hiding */
-  }
-  .row.head .cell div:first-child {
-    font-size: 13px !important;
-  }
+/* ===== Reset native <dialog> border to avoid double box ===== */
+dialog, dialog::backdrop {
+  border: none;
 }
-
-/* Very small devices */
-@media (max-width: 380px) {
-  .row.head .cell .pref-filter-inhead {
-    font-size: 15px;
-    padding: 8px 10px;
-  }
-  .row.head .cell div:first-child {
-    font-size: 12px !important;
-  }
+dialog {
+  padding: 0;
+  background: transparent;
+}
+/* keep the rounded box only on .dialog-card */
+.dialog-card {
+  border-radius: 20px;
+  overflow: hidden;
 }
 

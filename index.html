@@ -83,9 +83,6 @@
     <h3>تسجيل الحضور</h3>
     <div class="toolbar">
       <input id="searchInput" placeholder="ابحث بالاسم أو رقم الجلوس"/>
-      <select id="filterChoice" aria-label="فلترة حسب الرغبة">
-        <option value="" selected>كل الرغبات</option>
-      </select>
       <input id="attDate" type="hidden"/>
       <button class="btn-ghost" id="refreshSubs" type="button">تحديث القائمة</button>
     </div>
@@ -109,57 +106,102 @@
 </script>
 <script src="script.js"></script>
 
+
 <script>
-// ضبط تاريخ/وقت الحضور تلقائيًا وإضافة فلتر الرغبات
+// ضبط تاريخ/وقت الحضور تلقائيًا + إضافة فلتر داخل رأس عمود "الرغبة" في جدول الأدمن
 (function(){
-  const adminOpenBtn = document.getElementById('adminOpen');
-  const adminDialog = document.getElementById('adminDialog');
   const attDate = document.getElementById('attDate');
-  const filterChoice = document.getElementById('filterChoice');
+  const subsTable = document.getElementById('subsTable');
 
   function setNow(){
     try{
       const now = new Date();
-      // ISO بدون الميلي ثانية لاستخدام موحد
-      const iso = now.toISOString();
-      if(attDate) attDate.value = iso;
+      if(attDate) attDate.value = now.toISOString();
     }catch(e){}
   }
 
-  function populatePrefFilter(){
-    const src = document.getElementById('choice');
-    if(!src || !filterChoice) return;
-    const seen = new Set();
-    Array.from(src.querySelectorAll('option')).forEach(opt => {
-      const val = (opt.value||'').trim();
-      const text = (opt.textContent||'').trim();
-      if(!val || opt.disabled) return;
-      if(seen.has(val)) return;
-      seen.add(val);
+  // أنشئ فلتر داخل رأس العمود "الرغبة" بمجرد تكوين الجدول
+  function ensureHeaderFilter(){
+    if(!subsTable) return;
+    const head = subsTable.querySelector('.row.head');
+    if(!head) return;
+    // لا تنشئ أكثر من مرة
+    if (head.querySelector('.pref-filter-inhead')) return;
+
+    const cells = Array.from(head.querySelectorAll('.cell'));
+    if(!cells.length) return;
+
+    // حدد فهرس عمود "الرغبة" من نص الخلية
+    let prefIdx = cells.findIndex(c => (c.textContent||'').trim().includes('الرغبة'));
+    // لو لم يجد، حاول اعتماده كأول عمود نصي
+    if (prefIdx < 0) prefIdx = 0;
+
+    const prefHeaderCell = cells[prefIdx];
+
+    // اجمع القيم الفريدة من كل الصفوف
+    const rows = Array.from(subsTable.querySelectorAll('.row')).filter(r => !r.classList.contains('head'));
+    const prefs = new Set();
+    rows.forEach(r => {
+      const tds = Array.from(r.querySelectorAll('.cell'));
+      const val = (tds[prefIdx] ? tds[prefIdx].textContent : '').trim();
+      if (val) prefs.add(val);
+    });
+
+    // ابنِ عنصر select داخل رأس العمود
+    const select = document.createElement('select');
+    select.className = 'pref-filter-inhead';
+    const optAll = document.createElement('option');
+    optAll.value = '';
+    optAll.textContent = 'كل الرغبات';
+    select.appendChild(optAll);
+    Array.from(prefs).sort().forEach(v => {
       const o = document.createElement('option');
-      o.value = val;
-      o.textContent = text || val;
-      filterChoice.appendChild(o);
+      o.value = v;
+      o.textContent = v;
+      select.appendChild(o);
+    });
+
+    // أفرغ نص رأس الخلية وضع داخله الفلتر
+    prefHeaderCell.textContent = '';
+    const wrap = document.createElement('div');
+    wrap.style.display = 'flex';
+    wrap.style.flexDirection = 'column';
+    wrap.style.gap = '6px';
+    const label = document.createElement('div');
+    label.textContent = 'الرغبة';
+    label.style.fontWeight = '700';
+    label.style.fontSize = '14px';
+    label.style.lineHeight = '1';
+    wrap.appendChild(label);
+    wrap.appendChild(select);
+    prefHeaderCell.appendChild(wrap);
+
+    // فعل التصفية
+    select.addEventListener('change', () => applyFilter(prefIdx, select.value));
+  }
+
+  function applyFilter(prefIdx, wanted){
+    const rows = Array.from(subsTable.querySelectorAll('.row')).filter(r => !r.classList.contains('head'));
+    rows.forEach(r => {
+      const cells = Array.from(r.querySelectorAll('.cell'));
+      const val = (cells[prefIdx] ? cells[prefIdx].textContent : '').trim();
+      const show = !wanted || val === wanted;
+      r.style.display = show ? '' : 'none';
     });
   }
 
-  function init(){
+  // راقب الجدول لأي تحديث (عند الضغط على "تحديث القائمة" مثلاً)
+  const mo = new MutationObserver(() => {
+    // انتظر دورة رسم DOM حتى تكتمل الصفوف
+    requestAnimationFrame(ensureHeaderFilter);
+  });
+  if (subsTable) mo.observe(subsTable, { childList: true, subtree: true });
+
+  // تهيئة أولية
+  window.addEventListener('DOMContentLoaded', () => {
     setNow();
-    populatePrefFilter();
-  }
-
-  // عند فتح نافذة الأدمن أو تحميل الصفحة
-  if (adminOpenBtn) adminOpenBtn.addEventListener('click', init);
-  window.addEventListener('DOMContentLoaded', init);
-
-  // بث حدث مخصص عند تغيير فلتر الرغبات ليستمع له السكربت الخارجي إن وُجد
-  if (filterChoice) {
-    filterChoice.addEventListener('change', () => {
-      const ev = new CustomEvent('pref-filter-change', { detail: { value: filterChoice.value }});
-      window.dispatchEvent(ev);
-    });
-  }
-
+    ensureHeaderFilter();
+  });
 })();
 </script>
 

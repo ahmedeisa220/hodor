@@ -240,3 +240,18 @@ dialog {
   overflow: hidden;
 }
 
+
+/* === Mobile override to ALWAYS keep the "الرغبة" column visible === */
+@media (max-width: 600px) {
+  /* Keep 4 columns on small screens (checkbox, الاسم، رقم الجلوس، الرغبة) */
+  .row { grid-template-columns: 44px 1.2fr .9fr .9fr; }
+
+  /* Reduce spacing and font size a bit so all columns fit without hiding any */
+  .cell { padding: 10px 8px; font-size: 14px; }
+
+  /* Ensure the last column (الرغبة) is NOT hidden on mobile */
+  .row.head .cell:last-child,
+  .row:not(.head) .cell:last-child {
+    display: block !important;
+  }
+}

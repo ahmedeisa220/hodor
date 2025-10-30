@@ -35,6 +35,21 @@ const checkResult = $("#checkResult");
 let adminCreds = null;
 let allSubs = [];
 
+
+// --- Ensure html2pdf is available (loads from CDN if missing) ---
+
+async function ensureHtml2pdfLoaded(){
+  if (window.html2pdf) return;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Failed to load html2pdf.js'));
+    document.head.appendChild(s);
+  });
+}
+
 // Toast
 function toast(msg, type="ok"){
   const el = document.createElement("div");
@@ -367,6 +382,10 @@ const btnPDFNotRegistered = $("#btnPDFNotRegistered");
 const btnPDFRegNoAttendDay = $("#btnPDFRegNoAttendDay");
 const btnPDFNeverAttend = $("#btnPDFNeverAttend");
 const printContainer = $("#printContainer");
+
+if (reportDate && !reportDate.value) {
+  try { reportDate.value = new Date().toISOString().slice(0,10); } catch(e){}
+}
 
 function ensureAdmin(){ return !!adminCreds && !!ENDPOINT; }
 

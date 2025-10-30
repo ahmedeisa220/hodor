@@ -359,3 +359,102 @@ if (checkOpen && checkDialog && checkBtn) {
 }
 
 loadCapacities();
+
+
+// ===== Reports to PDF (Admin) =====
+const reportDate = $("#reportDate");
+const btnPDFNotRegistered = $("#btnPDFNotRegistered");
+const btnPDFRegNoAttendDay = $("#btnPDFRegNoAttendDay");
+const btnPDFNeverAttend = $("#btnPDFNeverAttend");
+const printContainer = $("#printContainer");
+
+function ensureAdmin(){ return !!adminCreds && !!ENDPOINT; }
+
+function buildTableHTML(title, subtitle, rows, columns){
+  const ths = columns.map(c=> `<th style="padding:8px 10px; border:1px solid #ccc; text-align:center;">${c.header}</th>`).join("");
+  const trs = rows.map((r,i)=> {
+    const tds = columns.map(c=> `<td style="padding:8px 10px; border:1px solid #ddd; text-align:center;">${c.value(r,i)}</td>`).join("");
+    return `<tr>${tds}</tr>`;
+  }).join("");
+  return `
+    <div dir="rtl" style="font-family: Cairo, Arial, sans-serif; width: 100%;">
+      <h2 style="margin:0 0 6px; font-weight:900;">${title}</h2>
+      <div style="margin:0 0 14px; color:#555;">${subtitle||""}</div>
+      <table style="border-collapse:collapse; width:100%; font-size:14px;">
+        <thead style="background:#f2f6fb;">${ths}</thead>
+        <tbody>${trs || '<tr><td colspan="'+columns.length+'" style="padding:16px; text-align:center; color:#777">لا توجد بيانات</td></tr>'}</tbody>
+      </table>
+    </div>`;
+}
+
+async function exportHTMLtoPDF(html, filename){
+  printContainer.innerHTML = html;
+  const element = printContainer.firstElementChild;
+  const opt = {
+    margin:       [10,10,10,10],
+    filename:     filename,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'pt', format: 'a4', orientation: 'portrait' }
+  };
+  await html2pdf().from(element).set(opt).save();
+  printContainer.innerHTML = "";
+}
+
+async function fetchReport(type, params = {}){
+  if (!ensureAdmin()){ toast("سجّل دخول الأدمن أولًا.", "err"); return null; }
+  const q = new URLSearchParams({ action:"report", type, u:adminCreds.user, p:adminCreds.pass, ...params, ts:Date.now() });
+  const res = await fetch(ENDPOINT + "?" + q.toString(), { method:"GET" });
+  const data = await res.json();
+  if (!data.ok){
+    toast("تعذر الحصول على التقرير: " + (data.reason || "غير معروف"), "err");
+    return null;
+  }
+  return data;
+}
+
+btnPDFNotRegistered?.addEventListener("click", async ()=>{
+  const data = await fetchReport("notRegistered");
+  if (!data) return;
+  const rows = data.rows || [];
+  const html = buildTableHTML("قائمة غير المسجلين من الدفعة", "مقارنة بين كشف الدفعة وكشف المسجلين (حسب رقم الجلوس). العدد: " + rows.length,
+    rows, [
+      { header:"#", value: (_,i)=> i+1 },
+      { header:"رقم الجلوس", value: r=> r.seat },
+      { header:"الاسم", value: r=> r.name }
+    ]
+  );
+  await exportHTMLtoPDF(html, "غير-المسجلين.pdf");
+});
+
+btnPDFRegNoAttendDay?.addEventListener("click", async ()=>{
+  const d = reportDate?.value;
+  if (!d){ toast("اختر التاريخ أولًا.", "warn"); return; }
+  const data = await fetchReport("registeredNotAttended", { date: d });
+  if (!data) return;
+  const rows = data.rows || [];
+  const html = buildTableHTML("المسجلون بدون حضور", "اليوم: " + d + " — العدد: " + rows.length,
+    rows, [
+      { header:"#", value: (_,i)=> i+1 },
+      { header:"رقم الجلوس", value: r=> r.seat },
+      { header:"الاسم", value: r=> r.name },
+      { header:"الرغبة", value: r=> r.choice || "" }
+    ]
+  );
+  await exportHTMLtoPDF(html, "مسجلون-بدون-حضور-"+d+".pdf");
+});
+
+btnPDFNeverAttend?.addEventListener("click", async ()=>{
+  const data = await fetchReport("registeredNeverAttended");
+  if (!data) return;
+  const rows = data.rows || [];
+  const html = buildTableHTML("المسجلون الذين لم يحضروا إطلاقًا", "العدد: " + rows.length,
+    rows, [
+      { header:"#", value: (_,i)=> i+1 },
+      { header:"رقم الجلوس", value: r=> r.seat },
+      { header:"الاسم", value: r=> r.name },
+      { header:"الرغبة", value: r=> r.choice || "" }
+    ]
+  );
+  await exportHTMLtoPDF(html, "مسجلون-لم-يحضروا-ابدا.pdf");
+});

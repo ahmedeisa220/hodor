@@ -87,12 +87,6 @@
       <button class="btn-ghost" id="refreshSubs" type="button">تحديث القائمة</button>
     </div>
     <div id="subsTable" class="table"></div>
-    <div class="toolbar">
-      <input id="reportDate" type="date" />
-      <button class="btn-ghost" id="btnPDFNotRegistered" type="button">📄 PDF: غير مسجلين من الدفعة</button>
-      <button class="btn-ghost" id="btnPDFRegNoAttendDay" type="button">📄 PDF: مسجلون بدون حضور (اليوم المحدد)</button>
-      <button class="btn-ghost" id="btnPDFNeverAttend" type="button">📄 PDF: مسجلون لم يحضروا أبدًا</button>
-    </div>
     <menu class="dialog-actions">
       <button class="btn-ghost" value="close">إغلاق</button>
       <button class="btn-primary" id="saveAttendance" type="button">تسجيل الحضور</button>
@@ -107,10 +101,9 @@
 
 <script>
   window.APP_CONFIG = {
-    ENDPOINT: "https://script.google.com/macros/s/AKfycbzFarhK4tsqvkihiQkMRRohxi6pRxKIyZ8dQ-JGvy1RIG0rE9W47SBdzAdfdEbvGC4m/exec"
+    ENDPOINT: "https://script.google.com/macros/s/AKfycbzPU-xCsIRdyPuUuJuIaU4YlZjUXOC5NIUqnrsZkU7a9sAnKTGLjUM0V2UuoUZAkFcS/exec"
   };
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="script.js"></script>
 
 
@@ -212,7 +205,5 @@
 })();
 </script>
 
-
-<div id="printContainer" style="position:fixed; left:-9999px; top:-9999px;"></div>
 </body>
 </html>

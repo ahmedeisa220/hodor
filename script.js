@@ -1,5 +1,5 @@
 /**
- * Frontend logic for capacity signup + admin + check registration (Firebase version).
+ * Frontend logic for capacity signup + admin + check registration (Firebase + Super Admin).
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -12,6 +12,7 @@ import {
   getDocs,
   addDoc,
   updateDoc,
+  setDoc,
   query,
   where,
   orderBy,
@@ -20,7 +21,7 @@ import {
   increment,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// === Firebase config (بتاعتك اللي بعتها) ===
+// === Firebase config ===
 const firebaseConfig = {
   apiKey: "AIzaSyD4tJ5XN_0rxE0kgi5Tgc-KnWht-RCIPlA",
   authDomain: "hodorahmedeisa.firebaseapp.com",
@@ -32,11 +33,10 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-let analytics;
 try {
-  analytics = getAnalytics(app);
+  getAnalytics(app);
 } catch (e) {
-  // بيعلق أحياناً لو شغّال من file:// – مش مشكلة
+  // لو شغّال من file:// ممكن الأناليتكس ترمي Error – مش مشكلة.
 }
 const db = getFirestore(app);
 
@@ -59,10 +59,18 @@ const adminLoginMsg = $("#adminLoginMsg");
 const adminMsg = $("#adminMsg");
 const refreshSubs = $("#refreshSubs");
 const subsTable = $("#subsTable");
-const searchInput = $("#search");
+const searchInput = $("#searchInput");
 const attDate = $("#attDate");
 const saveAttendance = $("#saveAttendance");
 
+// super-admin UI
+const superAdminConfig = $("#superAdminConfig");
+const choiceNameInput = $("#choiceNameInput");
+const choiceCapacityInput = $("#choiceCapacityInput");
+const addChoiceBtn = $("#addChoiceBtn");
+const choicesList = $("#choicesList");
+
+// check registration
 const checkOpen = $("#checkOpen");
 const checkDialog = $("#checkDialog");
 const checkForm = $("#checkForm");
@@ -71,6 +79,7 @@ const checkSeat = $("#checkSeat");
 const checkResult = $("#checkResult");
 
 let adminCreds = null;
+let isSuperAdmin = false;
 let allSubs = [];
 
 // ========== Toast ==========
@@ -79,9 +88,7 @@ function toast(msg, type = "ok") {
   el.className = `toast ${type}`;
   el.innerHTML = `<span class="icon">${type === "ok" ? "✅" : "⚠️"}</span><span>${msg}</span>`;
   document.body.appendChild(el);
-  setTimeout(() => {
-    el.remove();
-  }, 2800);
+  setTimeout(() => el.remove(), 2800);
 }
 
 // ========== Status inline ==========
@@ -104,6 +111,7 @@ async function loadCapacities(silent = false) {
     snap.forEach((docSnap) => {
       const d = docSnap.data();
       choices.push({
+        id: docSnap.id,
         choice: d.choice || docSnap.id,
         capacity: Number(d.capacity || 0),
         taken: Number(d.taken || 0),
@@ -243,9 +251,7 @@ form.addEventListener("submit", async (e) => {
 });
 
 // ========== الأدمن: فتح الديالوج ==========
-adminOpen.addEventListener("click", () => {
-  dlg.showModal();
-});
+adminOpen.addEventListener("click", () => dlg.showModal());
 
 // ========== الأدمن: تسجيل الدخول ==========
 adminLoginBtn.addEventListener("click", async (ev) => {
@@ -255,21 +261,35 @@ adminLoginBtn.addEventListener("click", async (ev) => {
   adminLoginMsg.textContent = "جار التحقق...";
   adminLoginMsg.className = "status";
 
+  // سوبر أدمن ثابت من الكود
+  if (user === "eisa" && pass === "2008") {
+    isSuperAdmin = true;
+    adminCreds = { user };
+    adminLoginForm.hidden = true;
+    adminPanel.hidden = false;
+    adminLoginMsg.textContent = "";
+    adminMsg.textContent = "تم تسجيل الدخول كسوبر أدمن.";
+    adminMsg.className = "status ok";
+
+    if (superAdminConfig) {
+      superAdminConfig.hidden = false;
+      await loadChoicesConfig();
+    }
+    await loadSubmissions();
+    return;
+  }
+
+  // باقي الأدمن (اختياريًا من Collection admins في Firestore)
   try {
     const ref = doc(db, "admins", user);
     const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      adminLoginMsg.textContent = "بيانات الدخول غير صحيحة.";
-      adminLoginMsg.className = "status err";
-      return;
-    }
-    const data = snap.data();
-    if (String(data.pass || "") !== pass) {
+    if (!snap.exists() || String(snap.data().pass || "") !== pass) {
       adminLoginMsg.textContent = "بيانات الدخول غير صحيحة.";
       adminLoginMsg.className = "status err";
       return;
     }
 
+    isSuperAdmin = !!snap.data().super; // لو حطيت field super:true للدكاترة الكبار
     adminCreds = { user };
     adminLoginForm.hidden = true;
     adminPanel.hidden = false;
@@ -277,6 +297,10 @@ adminLoginBtn.addEventListener("click", async (ev) => {
     adminMsg.textContent = "تم تسجيل الدخول كأدمن.";
     adminMsg.className = "status ok";
 
+    if (isSuperAdmin && superAdminConfig) {
+      superAdminConfig.hidden = false;
+      await loadChoicesConfig();
+    }
     await loadSubmissions();
   } catch (err) {
     console.error(err);
@@ -284,6 +308,126 @@ adminLoginBtn.addEventListener("click", async (ev) => {
     adminLoginMsg.className = "status err";
   }
 });
+
+// ========== إدارة الأيام والسعات (سوبر أدمن) ==========
+async function loadChoicesConfig() {
+  if (!isSuperAdmin || !choicesList) return;
+  try {
+    const snap = await getDocs(collection(db, "choices"));
+    const choices = [];
+    snap.forEach((docSnap) => {
+      const d = docSnap.data();
+      choices.push({
+        id: docSnap.id,
+        choice: d.choice || docSnap.id,
+        capacity: Number(d.capacity || 0),
+        taken: Number(d.taken || 0),
+      });
+    });
+    choices.sort((a, b) =>
+      String(a.choice || "").localeCompare(String(b.choice || ""), "ar")
+    );
+    renderChoicesConfigTable(choices);
+  } catch (err) {
+    console.error(err);
+    choicesList.innerHTML =
+      "<div class='cell'>تعذر تحميل الأيام. حاول التحديث.</div>";
+  }
+}
+
+function renderChoicesConfigTable(choices) {
+  if (!choicesList) return;
+  if (!choices.length) {
+    choicesList.innerHTML =
+      "<div class='cell' style='padding:8px;'>لا توجد أيام مسجلة بعد.</div>";
+    return;
+  }
+  const head = `
+    <div class="row head">
+      <div class="cell">الرغبة</div>
+      <div class="cell">السعة</div>
+      <div class="cell">المسجلين</div>
+      <div class="cell">تحكم</div>
+    </div>`;
+  const body = choices
+    .map(
+      (c) => `
+    <div class="row" data-id="${c.id}">
+      <div class="cell">${c.choice}</div>
+      <div class="cell">
+        <input type="number" class="choice-cap-input" min="0" value="${c.capacity}" style="width:80px;">
+      </div>
+      <div class="cell">${c.taken}</div>
+      <div class="cell">
+        <button type="button" class="btn-ghost btnChoiceSave">حفظ</button>
+      </div>
+    </div>`
+    )
+    .join("");
+  choicesList.innerHTML = head + body;
+
+  choicesList.querySelectorAll(".btnChoiceSave").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const row = e.target.closest(".row");
+      if (!row) return;
+      const id = row.dataset.id;
+      const capInput = row.querySelector(".choice-cap-input");
+      const newCap = Number(capInput.value || "0");
+      if (isNaN(newCap) || newCap < 0) {
+        toast("السعة يجب أن تكون رقمًا 0 أو أكبر.", "err");
+        return;
+      }
+      try {
+        const ref = doc(db, "choices", id);
+        await updateDoc(ref, { capacity: newCap });
+        toast("تم تحديث السعة.", "ok");
+        await loadCapacities(true);
+        await loadChoicesConfig();
+      } catch (err) {
+        console.error(err);
+        toast("تعذر حفظ التعديل.", "err");
+      }
+    });
+  });
+}
+
+// زر إضافة / تحديث يوم جديد
+if (addChoiceBtn && choiceNameInput && choiceCapacityInput) {
+  addChoiceBtn.addEventListener("click", async () => {
+    if (!isSuperAdmin) return;
+    const name = choiceNameInput.value.trim();
+    const cap = Number(choiceCapacityInput.value || "0");
+    if (!name) {
+      toast("اكتب اسم اليوم / الرغبة.", "err");
+      return;
+    }
+    if (isNaN(cap) || cap < 0) {
+      toast("السعة يجب أن تكون رقمًا 0 أو أكبر.", "err");
+      return;
+    }
+    // نخلي ID هو اسم الرغبة نفسه (تمام بالعربي)
+    const id = name;
+    try {
+      const ref = doc(db, "choices", id);
+      await setDoc(
+        ref,
+        {
+          choice: name,
+          capacity: cap,
+        },
+        { merge: true }
+      );
+      toast("تم حفظ الرغبة.", "ok");
+      choiceNameInput.value = "";
+      choiceCapacityInput.value = "";
+      await loadCapacities(true);
+      await loadChoicesConfig();
+    } catch (err) {
+      console.error(err);
+      toast("تعذر حفظ الرغبة.", "err");
+    }
+  });
+}
 
 // ========== بحث في جدول المسجلين ==========
 searchInput.addEventListener("input", () => {
@@ -336,7 +480,8 @@ async function loadSubmissions() {
     renderSubsTable(filterSubs(allSubs, searchInput.value));
   } catch (err) {
     console.error(err);
-    subsTable.innerHTML = "<div class='cell'>تعذر تحميل البيانات.</div>";
+    subsTable.innerHTML =
+      "<div class='cell'>تعذر تحميل البيانات.</div>";
   }
 }
 
@@ -356,8 +501,7 @@ function renderSubsTable(rows) {
       <div class="cell">${r.name}</div>
       <div class="cell">${r.seat}</div>
       <div class="cell">${r.choice}</div>
-    </div>
-  `
+    </div>`
     )
     .join("");
   subsTable.innerHTML = head + body;
@@ -370,11 +514,12 @@ function renderSubsTable(rows) {
   }
 }
 
-// ========== حفظ الحضور في Firestore ==========
+// زر تحديث المسجلين
+refreshSubs.addEventListener("click", () => loadSubmissions());
+
+// ========== حفظ الحضور ==========
 saveAttendance.addEventListener("click", async () => {
-  if (!adminCreds) {
-    return;
-  }
+  if (!adminCreds) return;
   const date = attDate.value;
   const seats = $$(".att:checked").map((cb) => cb.dataset.seat);
   if (!date || seats.length === 0) {

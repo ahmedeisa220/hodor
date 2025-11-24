@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>تسجيل حضور محاضرات الجراحة</title>
+  <title>تسجيل حضور محاضرات موديول الأطفال</title>
   <link rel="stylesheet" href="styles.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet"/>
   <style>
@@ -11,9 +11,11 @@
     html, body { font-family: var(--app-font); }
   </style>
 </head>
+
 <body>
+
 <header class="site-header">
-  <h1>تسجيل حضور محاضرات الجراحة الدفعة 59</h1>
+  <h1>تسجيل حضور محاضرات الأطفال الدفعة 59</h1>
   <p class="sub">اكتب اسمك ورقم جلوسك واختر يوم الحضور. الأماكن محدودة لكل رغبة.</p>
 </header>
 
@@ -64,7 +66,7 @@
   </form>
 </dialog>
 
-<!-- نافذة الأدمن -->
+<!-- نافذة الأدمن كاملة -->
 <dialog class="dialog" id="adminDialog">
   <form class="dialog-card" id="adminLoginForm" method="dialog">
     <h3>تسجيل دخول المشرف</h3>
@@ -82,7 +84,7 @@
   <form class="dialog-card" id="adminPanel" hidden method="dialog">
     <h3>تسجيل الحضور</h3>
 
-    <!-- بلوك السوبر أدمن لإدارة الأيام والسعات -->
+    <!-- سوبر أدمن: إدارة الأيام والسعات -->
     <section id="superAdminConfig" class="card" hidden>
       <h4 class="card-title">إدارة الأيام والسعات (سوبر أدمن)</h4>
       <div class="super-form-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
@@ -93,8 +95,31 @@
       <div id="choicesList" class="table"></div>
       <p class="muted" style="margin-top:6px;">يمكنك تعديل السعة لأي يوم، أو إضافة يوم جديد.</p>
     </section>
-    <!-- نهاية بلوك السوبر أدمن -->
 
+    <!-- سوبر أدمن: تقارير الحضور -->
+    <section id="superAdminReports" class="card" hidden>
+      <h4 class="card-title">تقارير الحضور</h4>
+      <div class="toolbar">
+        <select id="reportChoiceFilter">
+          <option value="">كل الأيام</option>
+        </select>
+        <button class="btn-ghost" id="loadReportsBtn" type="button">تحديث التقارير</button>
+      </div>
+
+      <div class="report-wrapper"
+           style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:8px;">
+        <div>
+          <h5 style="margin:4px 0;">حضروا</h5>
+          <div id="reportAttendedTable" class="table"></div>
+        </div>
+        <div>
+          <h5 style="margin:4px 0;">مسجلين ولم يحضروا</h5>
+          <div id="reportAbsentTable" class="table"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- أدوات الأدمن -->
     <div class="toolbar">
       <input id="searchInput" placeholder="ابحث بالاسم أو رقم الجلوس"/>
       <input id="attDate" type="hidden"/>
@@ -117,11 +142,11 @@
   </a>
 </footer>
 
-<!-- لم نَعُد نستخدم Google Apps Script – الكود كله يتكلم مع Firebase من داخل script.js -->
+<!-- الكود كله شغال مع Firebase من داخل script.js -->
 <script type="module" src="script.js"></script>
 
 <script>
-  // ضبط تاريخ/وقت الحضور تلقائيًا + إضافة فلتر داخل رأس عمود "الرغبة" في جدول الأدمن
+  // ضبط وقت الحضور + فلتر جدول الرغبات للأدمن
   (function () {
     const attDate = document.getElementById('attDate');
     const subsTable = document.getElementById('subsTable');
@@ -138,7 +163,6 @@
       const head = subsTable.querySelector('.row.head');
       if (!head) return;
 
-      // لو الفلتر متضاف قبل كده، بلاش نعيده
       if (head.querySelector('.pref-filter')) return;
 
       const cells = head.querySelectorAll('.cell');
@@ -147,21 +171,18 @@
       const prefHead = cells[3];
       const select = document.createElement('select');
       select.className = 'pref-filter';
-      select.innerHTML = `
-        <option value="">كل الرغبات</option>
-      `;
+      select.innerHTML = `<option value="">كل الرغبات</option>`;
 
-      const rows = Array.from(
-        subsTable.querySelectorAll('.row')
-      ).filter((r) => !r.classList.contains('head'));
+      const rows = Array.from(subsTable.querySelectorAll('.row'))
+        .filter(r => !r.classList.contains('head'));
 
       const prefs = new Set();
-      rows.forEach((r) => {
+      rows.forEach(r => {
         const c = r.querySelectorAll('.cell')[3];
         if (c) prefs.add(c.textContent.trim());
       });
 
-      prefs.forEach((p) => {
+      prefs.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p;
         opt.textContent = p;
@@ -170,10 +191,9 @@
 
       select.addEventListener('change', () => {
         const wanted = select.value;
-        const rows2 = Array.from(
-          subsTable.querySelectorAll('.row')
-        ).filter((r) => !r.classList.contains('head'));
-        rows2.forEach((r) => {
+        const rows2 = Array.from(subsTable.querySelectorAll('.row'))
+          .filter(r => !r.classList.contains('head'));
+        rows2.forEach(r => {
           const cells2 = r.querySelectorAll('.cell');
           const val = (cells2[3] ? cells2[3].textContent : '').trim();
           const show = !wanted || val === wanted;
@@ -181,15 +201,8 @@
         });
       });
 
-      const wrapper = document.createElement('div');
-      wrapper.style.display = 'flex';
-      wrapper.style.flexDirection = 'column';
-      wrapper.style.alignItems = 'flex-start';
-      wrapper.appendChild(document.createTextNode('الرغبة'));
-      wrapper.appendChild(select);
-
       prefHead.textContent = '';
-      prefHead.appendChild(wrapper);
+      prefHead.appendChild(select);
     }
 
     const mo = new MutationObserver(() => {

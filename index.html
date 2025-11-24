@@ -81,12 +81,28 @@
 
   <form class="dialog-card" id="adminPanel" hidden method="dialog">
     <h3>تسجيل الحضور</h3>
+
+    <!-- بلوك السوبر أدمن لإدارة الأيام والسعات -->
+    <section id="superAdminConfig" class="card" hidden>
+      <h4 class="card-title">إدارة الأيام والسعات (سوبر أدمن)</h4>
+      <div class="super-form-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+        <input id="choiceNameInput" placeholder="اسم اليوم / الرغبة الجديدة" style="flex:2;min-width:160px;"/>
+        <input id="choiceCapacityInput" type="number" min="0" placeholder="السعة الكلية" style="flex:1;min-width:120px;"/>
+        <button class="btn-primary" id="addChoiceBtn" type="button">إضافة / تحديث</button>
+      </div>
+      <div id="choicesList" class="table"></div>
+      <p class="muted" style="margin-top:6px;">يمكنك تعديل السعة لأي يوم، أو إضافة يوم جديد.</p>
+    </section>
+    <!-- نهاية بلوك السوبر أدمن -->
+
     <div class="toolbar">
       <input id="searchInput" placeholder="ابحث بالاسم أو رقم الجلوس"/>
       <input id="attDate" type="hidden"/>
       <button class="btn-ghost" id="refreshSubs" type="button">تحديث القائمة</button>
     </div>
+
     <div id="subsTable" class="table"></div>
+
     <menu class="dialog-actions">
       <button class="btn-ghost" value="close">إغلاق</button>
       <button class="btn-primary" id="saveAttendance" type="button">تسجيل الحضور</button>

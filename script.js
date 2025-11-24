@@ -1,5 +1,6 @@
 /**
- * Frontend logic for capacity signup + admin + check registration (Firebase + Super Admin).
+ * Frontend logic for capacity signup + admin + check registration
+ * (Firebase + Super Admin + Reports).
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -36,7 +37,7 @@ const app = initializeApp(firebaseConfig);
 try {
   getAnalytics(app);
 } catch (e) {
-  // لو شغّال من file:// ممكن الأناليتكس ترمي Error – مش مشكلة.
+  // ممكن يرمي Error من file:// – مش مشكلة
 }
 const db = getFirestore(app);
 
@@ -63,14 +64,21 @@ const searchInput = $("#searchInput");
 const attDate = $("#attDate");
 const saveAttendance = $("#saveAttendance");
 
-// super-admin UI
+// سوبر أدمن: إدارة الأيام
 const superAdminConfig = $("#superAdminConfig");
 const choiceNameInput = $("#choiceNameInput");
 const choiceCapacityInput = $("#choiceCapacityInput");
 const addChoiceBtn = $("#addChoiceBtn");
 const choicesList = $("#choicesList");
 
-// check registration
+// سوبر أدمن: التقارير
+const superAdminReports = $("#superAdminReports");
+const reportChoiceFilter = $("#reportChoiceFilter");
+const loadReportsBtn = $("#loadReportsBtn");
+const reportAttendedTable = $("#reportAttendedTable");
+const reportAbsentTable = $("#reportAbsentTable");
+
+// اختبار التسجيل
 const checkOpen = $("#checkOpen");
 const checkDialog = $("#checkDialog");
 const checkForm = $("#checkForm");
@@ -101,7 +109,7 @@ function showStatus(msg, cls = "") {
 const arabicNameRE = /^[\u0600-\u06FF\s]+$/;
 const seatRE = /^[0-9]{1,10}$/;
 
-// ========== تحميل الرغبات + الإحصائيات من Firestore ==========
+// ========== تحميل الرغبات + الإحصائيات ==========
 async function loadCapacities(silent = false) {
   try {
     if (!silent) showStatus("جارِ تحميل الرغبات المتاحة...");
@@ -118,11 +126,12 @@ async function loadCapacities(silent = false) {
       });
     });
 
-    // ترتيب أبجدي عربي
+    // ترتيب أبجدي
     choices.sort((a, b) =>
       String(a.choice || "").localeCompare(String(b.choice || ""), "ar")
     );
 
+    // select بتاع الطالب
     choiceSelect.innerHTML =
       '<option value="" disabled selected>اختر رغبتك</option>';
     choices.forEach((c) => {
@@ -137,7 +146,12 @@ async function loadCapacities(silent = false) {
       choiceSelect.appendChild(opt);
     });
 
+    // إحصائيات
     renderStats(choices);
+
+    // تحديث فلتر التقارير لو السوبر أدمن فاتح
+    updateReportChoiceFilter(choices);
+
     submitBtn.disabled = false;
     if (!silent) showStatus("✔️ جاهز للتسجيل", "ok");
   } catch (err) {
@@ -167,6 +181,22 @@ function renderStats(choices) {
     );
   });
   statsEl.innerHTML = blocks.join("");
+}
+
+// تحديث select الخاص بالتقارير
+function updateReportChoiceFilter(choices) {
+  if (!reportChoiceFilter) return;
+  const current = reportChoiceFilter.value || "";
+  reportChoiceFilter.innerHTML = `<option value="">كل الأيام</option>`;
+  choices.forEach((c) => {
+    const opt = document.createElement("option");
+    opt.value = c.choice;
+    opt.textContent = c.choice;
+    reportChoiceFilter.appendChild(opt);
+  });
+  if (current) {
+    reportChoiceFilter.value = current;
+  }
 }
 
 // ========== إرسال تسجيل جديد ==========
@@ -271,15 +301,16 @@ adminLoginBtn.addEventListener("click", async (ev) => {
     adminMsg.textContent = "تم تسجيل الدخول كسوبر أدمن.";
     adminMsg.className = "status ok";
 
-    if (superAdminConfig) {
-      superAdminConfig.hidden = false;
-      await loadChoicesConfig();
-    }
+    if (superAdminConfig) superAdminConfig.hidden = false;
+    if (superAdminReports) superAdminReports.hidden = false;
+
+    await loadChoicesConfig();
     await loadSubmissions();
+    await loadReports();
     return;
   }
 
-  // باقي الأدمن (اختياريًا من Collection admins في Firestore)
+  // باقي الأدمن (اختياري من Collection admins)
   try {
     const ref = doc(db, "admins", user);
     const snap = await getDoc(ref);
@@ -289,7 +320,7 @@ adminLoginBtn.addEventListener("click", async (ev) => {
       return;
     }
 
-    isSuperAdmin = !!snap.data().super; // لو حطيت field super:true للدكاترة الكبار
+    isSuperAdmin = !!snap.data().super; // لو حطيت super:true في Firestore
     adminCreds = { user };
     adminLoginForm.hidden = true;
     adminPanel.hidden = false;
@@ -297,9 +328,11 @@ adminLoginBtn.addEventListener("click", async (ev) => {
     adminMsg.textContent = "تم تسجيل الدخول كأدمن.";
     adminMsg.className = "status ok";
 
-    if (isSuperAdmin && superAdminConfig) {
-      superAdminConfig.hidden = false;
+    if (isSuperAdmin) {
+      if (superAdminConfig) superAdminConfig.hidden = false;
+      if (superAdminReports) superAdminReports.hidden = false;
       await loadChoicesConfig();
+      await loadReports();
     }
     await loadSubmissions();
   } catch (err) {
@@ -328,6 +361,7 @@ async function loadChoicesConfig() {
       String(a.choice || "").localeCompare(String(b.choice || ""), "ar")
     );
     renderChoicesConfigTable(choices);
+    updateReportChoiceFilter(choices);
   } catch (err) {
     console.error(err);
     choicesList.innerHTML =
@@ -391,7 +425,7 @@ function renderChoicesConfigTable(choices) {
   });
 }
 
-// زر إضافة / تحديث يوم جديد
+// إضافة / تحديث رغبة جديدة
 if (addChoiceBtn && choiceNameInput && choiceCapacityInput) {
   addChoiceBtn.addEventListener("click", async () => {
     if (!isSuperAdmin) return;
@@ -405,8 +439,7 @@ if (addChoiceBtn && choiceNameInput && choiceCapacityInput) {
       toast("السعة يجب أن تكون رقمًا 0 أو أكبر.", "err");
       return;
     }
-    // نخلي ID هو اسم الرغبة نفسه (تمام بالعربي)
-    const id = name;
+    const id = name; // نخلي ID = اسم الرغبة (حتى لو عربي)
     try {
       const ref = doc(db, "choices", id);
       await setDoc(
@@ -427,21 +460,6 @@ if (addChoiceBtn && choiceNameInput && choiceCapacityInput) {
       toast("تعذر حفظ الرغبة.", "err");
     }
   });
-}
-
-// ========== بحث في جدول المسجلين ==========
-searchInput.addEventListener("input", () => {
-  renderSubsTable(filterSubs(allSubs, searchInput.value));
-});
-
-function filterSubs(list, q) {
-  q = (q || "").trim();
-  if (!q) return list;
-  return list.filter(
-    (s) =>
-      String(s.name || "").includes(q) ||
-      String(s.seat || "").includes(q)
-  );
 }
 
 // ========== تحميل المسجلين للأدمن ==========
@@ -514,10 +532,25 @@ function renderSubsTable(rows) {
   }
 }
 
-// زر تحديث المسجلين
+// بحث في جدول المسجلين
+searchInput.addEventListener("input", () => {
+  renderSubsTable(filterSubs(allSubs, searchInput.value));
+});
+
+function filterSubs(list, q) {
+  q = (q || "").trim();
+  if (!q) return list;
+  return list.filter(
+    (s) =>
+      String(s.name || "").includes(q) ||
+      String(s.seat || "").includes(q)
+  );
+}
+
+// زر تحديث القائمة
 refreshSubs.addEventListener("click", () => loadSubmissions());
 
-// ========== حفظ الحضور ==========
+// ========== تسجيل الحضور ==========
 saveAttendance.addEventListener("click", async () => {
   if (!adminCreds) return;
   const date = attDate.value;
@@ -557,7 +590,116 @@ saveAttendance.addEventListener("click", async () => {
   }
 });
 
-// ========== قيود الكتابة أثناء الإدخال ==========
+// ========== تقارير السوبر أدمن ==========
+async function loadReports() {
+  if (!isSuperAdmin || !reportAttendedTable || !reportAbsentTable) return;
+
+  const filterChoice = (reportChoiceFilter && reportChoiceFilter.value) || "";
+
+  reportAttendedTable.innerHTML = "<div class='cell'>جارِ تحميل الحضور...</div>";
+  reportAbsentTable.innerHTML = "<div class='cell'>جارِ تحميل المسجلين...</div>";
+
+  try {
+    // submissions (الرغبات)
+    let subsQ = collection(db, "submissions");
+    if (filterChoice) {
+      subsQ = query(subsQ, where("choice", "==", filterChoice));
+    }
+    const subsSnap = await getDocs(subsQ);
+    const subs = [];
+    subsSnap.forEach((docSnap) => {
+      const d = docSnap.data();
+      subs.push({
+        seat: String(d.seat || ""),
+        name: String(d.name || ""),
+        choice: String(d.choice || ""),
+      });
+    });
+
+    // attendance (الحضور)
+    let attQ = collection(db, "attendance");
+    if (filterChoice) {
+      attQ = query(attQ, where("choice", "==", filterChoice));
+    }
+    const attSnap = await getDocs(attQ);
+    const attended = [];
+    const attendedKey = new Set();
+    attSnap.forEach((docSnap) => {
+      const d = docSnap.data();
+      const seat = String(d.seat || "");
+      const choice = String(d.choice || "");
+      const key = seat + "||" + choice;
+      attendedKey.add(key);
+      attended.push({
+        seat,
+        name: String(d.name || ""),
+        choice,
+        date: String(d.date || ""),
+        admin: String(d.admin || ""),
+      });
+    });
+
+    // absents = مسجل رغبة ومافيش حضور لنفس اليوم
+    const absents = subs.filter(
+      (s) => !attendedKey.has(s.seat + "||" + s.choice)
+    );
+
+    renderReportTable(reportAttendedTable, attended, true);
+    renderReportTable(reportAbsentTable, absents, false);
+  } catch (err) {
+    console.error(err);
+    reportAttendedTable.innerHTML =
+      "<div class='cell'>تعذر تحميل بيانات الحضور.</div>";
+    reportAbsentTable.innerHTML =
+      "<div class='cell'>تعذر تحميل بيانات المسجلين.</div>";
+  }
+}
+
+function renderReportTable(container, rows, withDate) {
+  if (!rows.length) {
+    container.innerHTML =
+      "<div class='cell' style='padding:8px;'>لا توجد بيانات.</div>";
+    return;
+  }
+
+  let head = `
+    <div class="row head">
+      <div class="cell">الاسم</div>
+      <div class="cell">رقم الجلوس</div>
+      <div class="cell">الرغبة</div>`;
+  if (withDate) {
+    head += `<div class="cell">التاريخ</div><div class="cell">المسؤول</div>`;
+  }
+  head += `</div>`;
+
+  const body = rows
+    .map((r) => {
+      let rowHtml = `
+        <div class="row">
+          <div class="cell">${r.name}</div>
+          <div class="cell">${r.seat}</div>
+          <div class="cell">${r.choice}</div>`;
+      if (withDate) {
+        rowHtml += `<div class="cell">${r.date || "-"}</div>
+                    <div class="cell">${r.admin || "-"}</div>`;
+      }
+      rowHtml += `</div>`;
+      return rowHtml;
+    })
+    .join("");
+
+  container.innerHTML = head + body;
+}
+
+// أزرار التقارير
+if (loadReportsBtn) {
+  loadReportsBtn.addEventListener("click", () => loadReports());
+}
+if (reportChoiceFilter) {
+  reportChoiceFilter.addEventListener("change", () => loadReports());
+}
+
+// ========== قيود الإدخال ==========
 $("#seat").addEventListener("input", (e) => {
   e.target.value = e.target.value.replace(/[^0-9]/g, "");
 });
@@ -565,7 +707,7 @@ $("#name").addEventListener("input", (e) => {
   e.target.value = e.target.value.replace(/[^\u0600-\u06FF\s]/g, "");
 });
 
-// ========== نافذة التحقق من رقم الجلوس ==========
+// ========== نافذة اختبار التسجيل ==========
 if (checkOpen && checkDialog && checkBtn) {
   checkOpen.addEventListener("click", () => {
     checkDialog.showModal();

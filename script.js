@@ -14,6 +14,7 @@ import {
   addDoc,
   updateDoc,
   setDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -394,6 +395,7 @@ function renderChoicesConfigTable(choices) {
       <div class="cell">${c.taken}</div>
       <div class="cell">
         <button type="button" class="btn-ghost btnChoiceSave">حفظ</button>
+        <button type="button" class="btn-ghost btnChoiceDelete" style="color:#b00;">حذف</button>
       </div>
     </div>`
     )
@@ -423,6 +425,34 @@ function renderChoicesConfigTable(choices) {
       }
     });
   });
+
+  choicesList.querySelectorAll(".btnChoiceDelete").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const row = e.target.closest(".row");
+      if (!row) return;
+      const id = row.dataset.id;
+      const takenCell = row.querySelectorAll(".cell")[2];
+      const taken = Number((takenCell?.textContent || "0").trim()) || 0;
+
+      if (taken > 0) {
+        alert("لا يمكن حذف رغبة عليها مسجلين. يمكنك فقط جعل السعة 0.");
+        return;
+      }
+
+      if (!confirm("هل تريد حذف هذه الرغبة نهائيًا؟")) return;
+
+      try {
+        await deleteDoc(doc(db, "choices", id));
+        toast("تم حذف الرغبة.", "ok");
+        await loadCapacities(true);
+        await loadChoicesConfig();
+      } catch (err) {
+        console.error(err);
+        toast("تعذر حذف الرغبة.", "err");
+      }
+    });
+  });
+
 }
 
 // إضافة / تحديث رغبة جديدة

@@ -810,7 +810,7 @@ if (checkOpen && checkDialog && checkBtn) {
 
       if (!subs.length && !att.length) {
         checkResult.textContent =
-          "❌ هذا الرقم غير موجود لا في تسجيل الرغبات ولا في الحضور.";
+          "❌لا يوجد أي بيانات مسجلة لرقم الجلوس";
         checkResult.className = "status err";
         return;
       }
@@ -826,7 +826,7 @@ if (checkOpen && checkDialog && checkBtn) {
       let html = "";
 
       if (subs.length) {
-        html += "<p>📌 هذا الرقم مسجل في الرغبات التالية:</p><ul>";
+        html += "<p>📌 الرغبات المسجلة:</p><ul>";
         html += subs
           .map(
             (s) =>
@@ -839,7 +839,7 @@ if (checkOpen && checkDialog && checkBtn) {
       }
 
       if (att.length) {
-        html += "<p>✅ وهذا الرقم له حضور في الأيام التالية:</p><ul>";
+        html += "<p>✅ أيام الحضور المكتملة:</p><ul>";
         html += att
           .map((a) => {
             const adminPart = a.admin

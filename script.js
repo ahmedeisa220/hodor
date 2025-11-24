@@ -739,6 +739,7 @@ $("#name").addEventListener("input", (e) => {
 
 // ========== نافذة اختبار التسجيل ==========
 if (checkOpen && checkDialog && checkBtn) {
+  // فتح نافذة الاختبار
   checkOpen.addEventListener("click", () => {
     checkDialog.showModal();
     checkResult.textContent = "";
@@ -747,9 +748,11 @@ if (checkOpen && checkDialog && checkBtn) {
     setTimeout(() => checkSeat.focus(), 50);
   });
 
+  // تنفيذ الاختبار
   checkBtn.addEventListener("click", async (e) => {
     e.preventDefault();
     const seat = (checkSeat.value || "").trim();
+
     if (!seat) {
       checkResult.textContent = "اكتب رقم الجلوس.";
       checkResult.className = "status warn";
@@ -761,40 +764,99 @@ if (checkOpen && checkDialog && checkBtn) {
       checkResult.className = "status warn";
       return;
     }
-    checkResult.textContent = "جارِ البحث...";
+
+    checkResult.textContent = "جارِ البحث في التسجيل والحضور...";
     checkResult.className = "status";
 
     try {
-      const qAtt = query(
-        collection(db, "attendance"),
-        where("seat", "==", seat),
-        orderBy("ts", "desc")
+      // 1) جلب الرغبات من submissions
+      const subsQ = query(
+        collection(db, "submissions"),
+        where("seat", "==", seat)
       );
-      const snap = await getDocs(qAtt);
-      if (snap.empty) {
-        checkResult.textContent = "❌ لم يتم العثور على هذا الرقم.";
+
+      // 2) جلب الحضور من attendance
+      const attQ = query(
+        collection(db, "attendance"),
+        where("seat", "==", seat)
+      );
+
+      const [subsSnap, attSnap] = await Promise.all([
+        getDocs(subsQ),
+        getDocs(attQ),
+      ]);
+
+      const subs = [];
+      subsSnap.forEach((docSnap) => {
+        const d = docSnap.data();
+        subs.push({
+          choice: String(d.choice || ""),
+          name: String(d.name || ""),
+          ts: d.ts && d.ts.toDate ? d.ts.toDate() : null,
+        });
+      });
+
+      const att = [];
+      attSnap.forEach((docSnap) => {
+        const d = docSnap.data();
+        att.push({
+          choice: String(d.choice || ""),
+          name: String(d.name || ""),
+          date: String(d.date || ""),
+          admin: String(d.admin || ""),
+          ts: d.ts && d.ts.toDate ? d.ts.toDate() : null,
+        });
+      });
+
+      if (!subs.length && !att.length) {
+        checkResult.textContent =
+          "❌ هذا الرقم غير موجود لا في تسجيل الرغبات ولا في الحضور.";
         checkResult.className = "status err";
         return;
       }
-      const days = [];
-      snap.forEach((docSnap) => {
-        const d = docSnap.data();
-        days.push({
-          date: String(d.date || ""),
-          choice: String(d.choice || ""),
-        });
-      });
-      let html =
-        "<p>✅ هذا الرقم مسجل حضورًا في الأيام التالية:</p><ul>";
-      html += days
-        .map((d) => `<li>${d.date} — ${d.choice}</li>`)
-        .join("");
-      html += "</ul>";
+
+      // ترتيب حسب الأحدث لو فيه ts
+      subs.sort(
+        (a, b) => (b.ts?.getTime() || 0) - (a.ts?.getTime() || 0)
+      );
+      att.sort(
+        (a, b) => (b.ts?.getTime() || 0) - (a.ts?.getTime() || 0)
+      );
+
+      let html = "";
+
+      if (subs.length) {
+        html += "<p>📌 هذا الرقم مسجل في الرغبات التالية:</p><ul>";
+        html += subs
+          .map(
+            (s) =>
+              `<li>${s.choice}${
+                s.name ? " — " + s.name : ""
+              }</li>`
+          )
+          .join("");
+        html += "</ul>";
+      }
+
+      if (att.length) {
+        html += "<p>✅ وهذا الرقم له حضور في الأيام التالية:</p><ul>";
+        html += att
+          .map((a) => {
+            const adminPart = a.admin
+              ? ` (المسؤول: ${a.admin})`
+              : "";
+            return `<li>${a.date || "-"} — ${a.choice}${adminPart}</li>`;
+          })
+          .join("");
+        html += "</ul>";
+      }
+
       checkResult.innerHTML = html;
       checkResult.className = "status ok";
     } catch (err) {
       console.error(err);
-      checkResult.textContent = "تعذر الاتصال بقاعدة البيانات.";
+      checkResult.textContent =
+        "تعذر الاتصال بقاعدة البيانات. تأكد من اتصال الإنترنت وصلاحيات القراءة في Firestore.";
       checkResult.className = "status err";
     }
   });

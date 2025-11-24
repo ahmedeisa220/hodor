@@ -96,113 +96,96 @@
 </dialog>
 
 <footer class="site-footer">
-  <a href="https://t.me/Dr_Ahmed_Eisa" target="_blank" rel="noopener noreferrer">Developer: Dr_Ahmed_Eisa</a>
+  <a href="https://t.me/Dr_Ahmed_Eisa" target="_blank" rel="noopener noreferrer">
+    Developer: Dr_Ahmed_Eisa
+  </a>
 </footer>
 
-<script>
-  window.APP_CONFIG = {
-    ENDPOINT: "https://script.google.com/macros/s/AKfycbzPU-xCsIRdyPuUuJuIaU4YlZjUXOC5NIUqnrsZkU7a9sAnKTGLjUM0V2UuoUZAkFcS/exec"
-  };
-</script>
-<script src="script.js"></script>
-
+<!-- لم نَعُد نستخدم Google Apps Script – الكود كله يتكلم مع Firebase من داخل script.js -->
+<script type="module" src="script.js"></script>
 
 <script>
-// ضبط تاريخ/وقت الحضور تلقائيًا + إضافة فلتر داخل رأس عمود "الرغبة" في جدول الأدمن
-(function(){
-  const attDate = document.getElementById('attDate');
-  const subsTable = document.getElementById('subsTable');
+  // ضبط تاريخ/وقت الحضور تلقائيًا + إضافة فلتر داخل رأس عمود "الرغبة" في جدول الأدمن
+  (function () {
+    const attDate = document.getElementById('attDate');
+    const subsTable = document.getElementById('subsTable');
 
-  function setNow(){
-    try{
-      const now = new Date();
-      if(attDate) attDate.value = now.toISOString();
-    }catch(e){}
-  }
+    function setNow() {
+      try {
+        const now = new Date();
+        if (attDate) attDate.value = now.toISOString();
+      } catch (e) {}
+    }
 
-  // أنشئ فلتر داخل رأس العمود "الرغبة" بمجرد تكوين الجدول
-  function ensureHeaderFilter(){
-    if(!subsTable) return;
-    const head = subsTable.querySelector('.row.head');
-    if(!head) return;
-    // لا تنشئ أكثر من مرة
-    if (head.querySelector('.pref-filter-inhead')) return;
+    function ensureHeaderFilter() {
+      if (!subsTable) return;
+      const head = subsTable.querySelector('.row.head');
+      if (!head) return;
 
-    const cells = Array.from(head.querySelectorAll('.cell'));
-    if(!cells.length) return;
+      // لو الفلتر متضاف قبل كده، بلاش نعيده
+      if (head.querySelector('.pref-filter')) return;
 
-    // حدد فهرس عمود "الرغبة" من نص الخلية
-    let prefIdx = cells.findIndex(c => (c.textContent||'').trim().includes('الرغبة'));
-    // لو لم يجد، حاول اعتماده كأول عمود نصي
-    if (prefIdx < 0) prefIdx = 0;
+      const cells = head.querySelectorAll('.cell');
+      if (cells.length < 4) return;
 
-    const prefHeaderCell = cells[prefIdx];
+      const prefHead = cells[3];
+      const select = document.createElement('select');
+      select.className = 'pref-filter';
+      select.innerHTML = `
+        <option value="">كل الرغبات</option>
+      `;
 
-    // اجمع القيم الفريدة من كل الصفوف
-    const rows = Array.from(subsTable.querySelectorAll('.row')).filter(r => !r.classList.contains('head'));
-    const prefs = new Set();
-    rows.forEach(r => {
-      const tds = Array.from(r.querySelectorAll('.cell'));
-      const val = (tds[prefIdx] ? tds[prefIdx].textContent : '').trim();
-      if (val) prefs.add(val);
+      const rows = Array.from(
+        subsTable.querySelectorAll('.row')
+      ).filter((r) => !r.classList.contains('head'));
+
+      const prefs = new Set();
+      rows.forEach((r) => {
+        const c = r.querySelectorAll('.cell')[3];
+        if (c) prefs.add(c.textContent.trim());
+      });
+
+      prefs.forEach((p) => {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        select.appendChild(opt);
+      });
+
+      select.addEventListener('change', () => {
+        const wanted = select.value;
+        const rows2 = Array.from(
+          subsTable.querySelectorAll('.row')
+        ).filter((r) => !r.classList.contains('head'));
+        rows2.forEach((r) => {
+          const cells2 = r.querySelectorAll('.cell');
+          const val = (cells2[3] ? cells2[3].textContent : '').trim();
+          const show = !wanted || val === wanted;
+          r.style.display = show ? '' : 'none';
+        });
+      });
+
+      const wrapper = document.createElement('div');
+      wrapper.style.display = 'flex';
+      wrapper.style.flexDirection = 'column';
+      wrapper.style.alignItems = 'flex-start';
+      wrapper.appendChild(document.createTextNode('الرغبة'));
+      wrapper.appendChild(select);
+
+      prefHead.textContent = '';
+      prefHead.appendChild(wrapper);
+    }
+
+    const mo = new MutationObserver(() => {
+      requestAnimationFrame(ensureHeaderFilter);
     });
+    if (subsTable) mo.observe(subsTable, { childList: true, subtree: true });
 
-    // ابنِ عنصر select داخل رأس العمود
-    const select = document.createElement('select');
-    select.className = 'pref-filter-inhead';
-    const optAll = document.createElement('option');
-    optAll.value = '';
-    optAll.textContent = 'كل الرغبات';
-    select.appendChild(optAll);
-    Array.from(prefs).sort().forEach(v => {
-      const o = document.createElement('option');
-      o.value = v;
-      o.textContent = v;
-      select.appendChild(o);
+    window.addEventListener('DOMContentLoaded', () => {
+      setNow();
+      ensureHeaderFilter();
     });
-
-    // أفرغ نص رأس الخلية وضع داخله الفلتر
-    prefHeaderCell.textContent = '';
-    const wrap = document.createElement('div');
-    wrap.style.display = 'flex';
-    wrap.style.flexDirection = 'column';
-    wrap.style.gap = '6px';
-    const label = document.createElement('div');
-    label.textContent = 'الرغبة';
-    label.style.fontWeight = '700';
-    label.style.fontSize = '14px';
-    label.style.lineHeight = '1';
-    wrap.appendChild(label);
-    wrap.appendChild(select);
-    prefHeaderCell.appendChild(wrap);
-
-    // فعل التصفية
-    select.addEventListener('change', () => applyFilter(prefIdx, select.value));
-  }
-
-  function applyFilter(prefIdx, wanted){
-    const rows = Array.from(subsTable.querySelectorAll('.row')).filter(r => !r.classList.contains('head'));
-    rows.forEach(r => {
-      const cells = Array.from(r.querySelectorAll('.cell'));
-      const val = (cells[prefIdx] ? cells[prefIdx].textContent : '').trim();
-      const show = !wanted || val === wanted;
-      r.style.display = show ? '' : 'none';
-    });
-  }
-
-  // راقب الجدول لأي تحديث (عند الضغط على "تحديث القائمة" مثلاً)
-  const mo = new MutationObserver(() => {
-    // انتظر دورة رسم DOM حتى تكتمل الصفوف
-    requestAnimationFrame(ensureHeaderFilter);
-  });
-  if (subsTable) mo.observe(subsTable, { childList: true, subtree: true });
-
-  // تهيئة أولية
-  window.addEventListener('DOMContentLoaded', () => {
-    setNow();
-    ensureHeaderFilter();
-  });
-})();
+  })();
 </script>
 
 </body>

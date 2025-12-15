@@ -1,6 +1,7 @@
 /**
  * Frontend logic for capacity signup + admin + check registration
  * (Firebase + Super Admin + Reports).
+ * Updated: Allows multiple registrations for different choices (same seat).
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -38,7 +39,7 @@ const app = initializeApp(firebaseConfig);
 try {
   getAnalytics(app);
 } catch (e) {
-  // ممكن يرمي Error من file:// – مش مشكلة
+  // Ignored
 }
 const db = getFirestore(app);
 
@@ -227,20 +228,33 @@ form.addEventListener("submit", async (e) => {
   showStatus("جارٍ الإرسال...");
 
   try {
-    // 1) منع تكرار رقم الجلوس
+    // ----------------------------------------------------
+    // تعديل: السماح بتعدد التسجيلات لنفس الطالب (رغبات مختلفة)
+    // ----------------------------------------------------
+    
+    // 1) البحث عن جميع تسجيلات هذا الطالب
     const dupQ = query(
       collection(db, "submissions"),
-      where("seat", "==", seat),
-      limit(1)
+      where("seat", "==", seat)
     );
     const dupSnap = await getDocs(dupQ);
-    if (!dupSnap.empty) {
-      toast("رقم الجلوس مسجل من قبل.", "err");
+    
+    // 2) فحص هل الطالب سجل في "نفس الرغبة" هذه من قبل؟
+    let alreadyInThisChoice = false;
+    dupSnap.forEach(doc => {
+        if (doc.data().choice === choice) {
+            alreadyInThisChoice = true;
+        }
+    });
+
+    if (alreadyInThisChoice) {
+      toast("أنت مسجل في هذه الرغبة (اليوم) بالفعل.", "err");
+      showStatus("تم تسجيلك في هذا الموعد مسبقاً.", "warn");
       submitBtn.disabled = false;
       return;
     }
 
-    // 2) التأكد من السعة
+    // 2) التأكد من السعة (كما هو)
     const choiceRef = doc(db, "choices", choice);
     const choiceSnap = await getDoc(choiceRef);
     if (!choiceSnap.exists()) {
@@ -321,7 +335,7 @@ adminLoginBtn.addEventListener("click", async (ev) => {
       return;
     }
 
-    isSuperAdmin = !!snap.data().super; // لو حطيت super:true في Firestore
+    isSuperAdmin = !!snap.data().super; 
     adminCreds = { user };
     adminLoginForm.hidden = true;
     adminPanel.hidden = false;
@@ -469,7 +483,7 @@ if (addChoiceBtn && choiceNameInput && choiceCapacityInput) {
       toast("السعة يجب أن تكون رقمًا 0 أو أكبر.", "err");
       return;
     }
-    const id = name; // نخلي ID = اسم الرغبة (حتى لو عربي)
+    const id = name;
     try {
       const ref = doc(db, "choices", id);
       await setDoc(
@@ -545,7 +559,7 @@ function renderSubsTable(rows) {
     .map(
       (r) => `
     <div class="row">
-      <div class="cell"><input type="checkbox" class="att" data-seat="${r.seat}"></div>
+      <div class="cell"><input type="checkbox" class="att" data-seat="${r.seat}" data-choice="${r.choice}"></div>
       <div class="cell">${r.name}</div>
       <div class="cell">${r.seat}</div>
       <div class="cell">${r.choice}</div>
@@ -584,35 +598,53 @@ refreshSubs.addEventListener("click", () => loadSubmissions());
 saveAttendance.addEventListener("click", async () => {
   if (!adminCreds) return;
   const date = attDate.value;
-  const seats = $$(".att:checked").map((cb) => cb.dataset.seat);
-  if (!date || seats.length === 0) {
+  // نجمع الـ checkboxes المختارة
+  const selectedCheckboxes = $$(".att:checked");
+  
+  if (!date || selectedCheckboxes.length === 0) {
     adminMsg.textContent = "اختر تاريخ وحدد طلاب.";
     adminMsg.className = "status warn";
     return;
   }
+  
   adminMsg.textContent = "جارِ الحفظ...";
   adminMsg.className = "status";
 
   try {
     const promises = [];
-    seats.forEach((seat) => {
-      const sub = allSubs.find((s) => s.seat === seat);
+    
+    // التعديل هنا: نستخدم المقعد + الرغبة لضمان تحديد التسجيل الصحيح في حال الطالب مسجل مرتين
+    selectedCheckboxes.forEach((cb) => {
+      const seat = cb.dataset.seat;
+      const choice = cb.dataset.choice;
+      
+      // نبحث عن بيانات الطالب التي تطابق المقعد والرغبة معاً
+      const sub = allSubs.find((s) => s.seat === seat && s.choice === choice);
+      
       if (!sub) return;
+
       promises.push(
         addDoc(collection(db, "attendance"), {
           ts: serverTimestamp(),
           date,
           seat,
           name: sub.name,
-          choice: sub.choice,
+          choice: sub.choice, // تخزين الرغبة الصحيحة
           admin: adminCreds.user,
         })
       );
     });
+
     await Promise.all(promises);
-    adminMsg.textContent = `تم تسجيل حضور ${seats.length} طالب.`;
+    adminMsg.textContent = `تم تسجيل حضور ${promises.length} طالب.`;
     adminMsg.className = "status ok";
-    toast(`تم تسجيل حضور ${seats.length} طالب.`, "ok");
+    toast(`تم تسجيل حضور ${promises.length} طالب.`, "ok");
+    
+    // إلغاء تحديد الـ checkboxes بعد الحفظ
+    selectedCheckboxes.forEach(cb => cb.checked = false);
+    const checkAll = $("#checkAll");
+    if (checkAll) checkAll.checked = false;
+
   } catch (err) {
     console.error(err);
     adminMsg.textContent = "تعذر الحفظ.";
@@ -669,7 +701,7 @@ async function loadReports() {
       });
     });
 
-    // absents = مسجل رغبة ومافيش حضور لنفس اليوم
+    // absents = مسجل رغبة ومافيش حضور لنفس اليوم (الرغبة)
     const absents = subs.filter(
       (s) => !attendedKey.has(s.seat + "||" + s.choice)
     );
